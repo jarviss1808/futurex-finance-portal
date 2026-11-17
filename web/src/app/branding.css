@@ -1,0 +1,48 @@
+.auth-logo {
+  display: block;
+  width: min(410px, 100%);
+  height: auto;
+  background: #fff;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.side-brand {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.side-brand img {
+  display: block;
+  width: 178px;
+  height: auto;
+  background: #fff;
+  padding: 5px;
+}
+
+.doc-logo {
+  display: block;
+  width: min(310px, 100%);
+  height: auto;
+  margin-bottom: 14px;
+}
+
+.config-editor {
+  border-top: 1px solid var(--line);
+  padding: 15px 0;
+}
+
+.config-editor summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.config-editor summary::-webkit-details-marker { display: none; }
+.config-editor summary span:first-child { display: flex; flex-direction: column; gap: 5px; }
+.config-editor summary small { color: var(--muted); }
+.config-editor form { margin-top: 18px; padding: 18px; background: var(--wash); }

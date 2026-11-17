@@ -1,0 +1,474 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  EMPLOYEE
+  PAYMENT_VERIFIER
+  TAX_INVOICE_ISSUER
+  ACCOUNTANT
+  ADMIN
+}
+
+enum DocumentType {
+  PROFORMA
+  TAX_INVOICE
+  CREDIT_NOTE
+  DEBIT_NOTE
+  RECEIPT
+  GST_RECEIPT_VOUCHER
+}
+
+enum DocumentStatus {
+  DRAFT
+  VALIDATED
+  ISSUED
+  REVISED
+  VOIDED
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  REVERSED
+  REFUNDED
+  WITHDRAWN
+}
+
+enum EinvoiceStatus {
+  UNRESOLVED
+  NOT_APPLICABLE
+  REQUIRED_PENDING
+  VERIFIED
+}
+
+enum EventType {
+  OWNED
+  EXTERNAL
+}
+
+enum PiCategory {
+  EXHIBITION_PARTICIPATION
+  BRANDING_FLEX_FRAME
+  EXTRA_REQUIREMENTS
+  STALL_FABRICATION
+}
+
+model Organization {
+  id           String              @id @default(cuid())
+  name         String
+  users        User[]
+  clients      Client[]
+  companies    CompanyMaster[]
+  events       Event[]
+  series       DocumentSeries[]
+  documents    FinancialDocument[]
+  payments     Payment[]
+  taxRules     TaxRule[]
+  profile      CompanyProfile?
+  tallyBatches TallyExportBatch[]
+  emailDeliveries DocumentEmailDelivery[]
+  createdAt    DateTime            @default(now())
+}
+
+model CompanyMaster {
+  id              String       @id @default(cuid())
+  organizationId  String
+  canonicalKey    String
+  legalName       String
+  normalizedName  String
+  countryCode     String
+  billingAddress  String
+  gstin           String?
+  defaultCurrency String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  relationships   Client[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, canonicalKey])
+  @@index([organizationId, normalizedName])
+}
+
+model User {
+  id               String              @id @default(cuid())
+  organizationId   String
+  email            String              @unique
+  name             String
+  passwordHash     String
+  role             Role                @default(EMPLOYEE)
+  active           Boolean             @default(true)
+  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  sessions         Session[]
+  clients          Client[]            @relation("ClientOwner")
+  documents        FinancialDocument[] @relation("DocumentOwner")
+  reportedPayments Payment[]           @relation("PaymentReporter")
+  sharesReceived   DocumentShare[]     @relation("ShareRecipient")
+  verifiedPayments Payment[]           @relation("PaymentVerifier")
+  auditEvents      AuditEvent[]
+  emailDeliveries DocumentEmailDelivery[] @relation("EmailRequester")
+  proofsUploaded   PaymentProof[]      @relation("ProofUploader")
+  gstVerifications Client[]            @relation("GstVerifier")
+  correctedDocuments FinancialDocument[] @relation("DocumentCorrector")
+  adminMfa         AdminMfa?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([organizationId, role])
+}
+
+model AdminMfa {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  secretCiphertext   String
+  recoveryCodeHashes String[]
+  verifiedAt         DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model LoginThrottle {
+  key         String    @id
+  failures    Int       @default(0)
+  windowStart DateTime  @default(now())
+  lockedUntil DateTime?
+  updatedAt   DateTime  @updatedAt
+}
+
+model Client {
+  id              String              @id @default(cuid())
+  organizationId  String
+  ownerId         String
+  masterId        String
+  legalName       String
+  normalizedName  String
+  billingAddress  String
+  gstin           String?
+  countryCode     String              @default("IN")
+  defaultCurrency String              @default("INR")
+  contactName     String?
+  contactEmail    String?
+  contactPhone    String?
+  contactDialCode String?             @default("+91")
+  gstTradeName    String?
+  gstRegistrationStatus String?
+  gstVerificationSource String?
+  gstVerifiedAt   DateTime?
+  gstVerifiedById String?
+  privateNotes    String?
+  additionalEmails String[]             @default([])
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  owner           User                @relation("ClientOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  gstVerifiedBy   User?               @relation("GstVerifier", fields: [gstVerifiedById], references: [id], onDelete: Restrict)
+  master          CompanyMaster       @relation(fields: [masterId], references: [id], onDelete: Restrict)
+  documents       FinancialDocument[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([masterId, ownerId])
+  @@index([organizationId, ownerId])
+  @@index([gstVerifiedById])
+}
+
+model Event {
+  id                String              @id @default(cuid())
+  organizationId    String
+  canonicalKey      String?
+  name              String
+  edition           String?
+  type              EventType           @default(OWNED)
+  startsOn          DateTime
+  endsOn            DateTime
+  venue             String
+  city              String
+  stateRegion       String?
+  countryCode       String
+  timezone          String              @default("Asia/Kolkata")
+  website           String?
+  posterImageKey    String?
+  taxRuleId         String?
+  taxConfigApproved Boolean             @default(false)
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  taxRule           TaxRule?            @relation(fields: [taxRuleId], references: [id], onDelete: Restrict)
+  documents         FinancialDocument[]
+  createdAt         DateTime            @default(now())
+
+  @@unique([organizationId, canonicalKey])
+  @@index([organizationId, startsOn])
+  @@index([taxRuleId])
+}
+
+model DocumentSeries {
+  id             String              @id @default(cuid())
+  organizationId String
+  documentType   DocumentType
+  financialYear  String
+  prefix         String
+  suffix         String              @default("")
+  padding        Int                 @default(1)
+  nextNumber     BigInt
+  configured     Boolean             @default(false)
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  documents      FinancialDocument[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@unique([organizationId, documentType, financialYear, prefix, suffix])
+}
+
+model FinancialDocument {
+  id                    String              @id @default(cuid())
+  organizationId        String
+  ownerId               String
+  clientId              String
+  eventId               String?
+  seriesId              String?
+  sourceDocumentId      String?
+  type                  DocumentType
+  status                DocumentStatus      @default(DRAFT)
+  number                String?
+  currency              String              @default("INR")
+  piCategory            PiCategory?
+  taxablePaise          BigInt
+  taxPaise              BigInt
+  totalPaise            BigInt
+  tdsPaise              BigInt              @default(0)
+  netReceivablePaise    BigInt              @default(0)
+  taxRuleId             String?
+  einvoiceStatus        EinvoiceStatus      @default(UNRESOLVED)
+  irn                   String?
+  acknowledgementNumber String?
+  signedQrPayload       String?
+  issuedAt              DateTime?
+  snapshot              Json?
+  correctedSnapshot     Json?
+  correctionVersion     Int                 @default(0)
+  correctionReason      String?
+  correctedAt           DateTime?
+  correctedById         String?
+  version               Int                 @default(1)
+  organization          Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  owner                 User                @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  correctedBy           User?               @relation("DocumentCorrector", fields: [correctedById], references: [id], onDelete: Restrict)
+  client                Client              @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  event                 Event?              @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  series                DocumentSeries?     @relation(fields: [seriesId], references: [id], onDelete: Restrict)
+  shares                DocumentShare[]
+  allocations           PaymentAllocation[]
+  files                 PrivateFile[]
+  receiptFor            Payment?            @relation("PaymentReceipt")
+  taxRule               TaxRule?            @relation(fields: [taxRuleId], references: [id], onDelete: Restrict)
+  sourceDocument        FinancialDocument?  @relation("DocumentAdjustments", fields: [sourceDocumentId], references: [id], onDelete: Restrict)
+  adjustments           FinancialDocument[] @relation("DocumentAdjustments")
+  tallyExportItem       TallyExportItem?
+  emailDeliveries       DocumentEmailDelivery[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@unique([organizationId, type, number])
+  @@index([organizationId, ownerId, status])
+  @@index([organizationId, clientId])
+  @@index([organizationId, type, issuedAt])
+  @@index([sourceDocumentId])
+  @@index([correctedById])
+}
+
+model DocumentShare {
+  documentId String
+  userId     String
+  document   FinancialDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User              @relation("ShareRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime          @default(now())
+
+  @@id([documentId, userId])
+}
+
+model Payment {
+  id                String              @id @default(cuid())
+  organizationId    String
+  reportedById      String
+  verifiedById      String?
+  amountPaise       BigInt
+  currency          String              @default("INR")
+  paidOn            DateTime
+  mode              String
+  reference         String?
+  payer             String
+  status            PaymentStatus       @default(PENDING)
+  remarks           String?
+  reviewNote        String?
+  reviewedAt        DateTime?
+  verifiedAt        DateTime?
+  submissionCount   Int                 @default(1)
+  submittedAt       DateTime            @default(now())
+  receiptDocumentId String?             @unique
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  reportedBy        User                @relation("PaymentReporter", fields: [reportedById], references: [id], onDelete: Restrict)
+  verifiedBy        User?               @relation("PaymentVerifier", fields: [verifiedById], references: [id], onDelete: Restrict)
+  receipt           FinancialDocument?  @relation("PaymentReceipt", fields: [receiptDocumentId], references: [id], onDelete: Restrict)
+  allocations       PaymentAllocation[]
+  proofs            PaymentProof[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@unique([organizationId, reference, amountPaise])
+  @@index([organizationId, status, paidOn])
+  @@index([organizationId, reportedById, status])
+}
+
+model PaymentProof {
+  id           String   @id @default(cuid())
+  paymentId    String
+  uploadedById String
+  storageKey   String   @unique
+  fileName     String
+  mediaType    String
+  sha256       String
+  sizeBytes    Int
+  payment      Payment  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  uploadedBy   User     @relation("ProofUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  createdAt    DateTime @default(now())
+
+  @@index([paymentId])
+}
+
+model PaymentAllocation {
+  id          String            @id @default(cuid())
+  paymentId   String
+  documentId  String
+  amountPaise BigInt
+  tdsPaise    BigInt            @default(0)
+  payment     Payment           @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  document    FinancialDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  createdAt   DateTime          @default(now())
+
+  @@unique([paymentId, documentId])
+  @@index([documentId])
+}
+
+model PrivateFile {
+  id         String            @id @default(cuid())
+  documentId String
+  storageKey String            @unique
+  mediaType  String
+  sha256     String
+  sizeBytes  BigInt
+  document   FinancialDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime          @default(now())
+}
+
+model AuditEvent {
+  id             String   @id @default(cuid())
+  organizationId String
+  actorId        String
+  action         String
+  entityType     String
+  entityId       String
+  metadata       Json?
+  actor          User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, entityType, entityId, createdAt])
+}
+
+model DocumentEmailDelivery {
+  id                String            @id @default(cuid())
+  organizationId    String
+  documentId        String
+  requestedById     String
+  kind              String            @default("DOCUMENT")
+  recipients        String[]
+  subject           String
+  status            String
+  provider          String            @default("SENDGRID")
+  providerMessageId String?
+  failureReason     String?
+  createdAt         DateTime          @default(now())
+  sentAt            DateTime?
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  document          FinancialDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  requestedBy       User              @relation("EmailRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([documentId, status, createdAt])
+  @@index([documentId, kind, createdAt])
+}
+
+model TaxRule {
+  id                String              @id @default(cuid())
+  organizationId    String
+  name              String
+  taxType           String
+  rateBasisPoints   Int
+  placeOfSupplyRule String
+  exemptionNote     String?
+  approved          Boolean             @default(false)
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  documents         FinancialDocument[]
+  events            Event[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([organizationId, approved])
+}
+
+model CompanyProfile {
+  id                  String       @id @default(cuid())
+  organizationId      String       @unique
+  legalName           String
+  registeredAddress   String
+  corporateAddress    String
+  gstRegisteredAddress String
+  gstin               String
+  pan                 String
+  cin                 String
+  accountsEmail       String
+  bankDetails         Json?
+  logoStorageKey      String?
+  signatureStorageKey String?
+  signatureApproved   Boolean      @default(false)
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  updatedAt           DateTime     @updatedAt
+}
+
+model TallyExportBatch {
+  id             String            @id @default(cuid())
+  organizationId String
+  createdById    String
+  sha256         String
+  payload        String
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  items          TallyExportItem[]
+  createdAt      DateTime          @default(now())
+
+  @@index([organizationId, createdAt])
+}
+
+model TallyExportItem {
+  documentId String            @id
+  batchId    String
+  voucherKey String            @unique
+  document   FinancialDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  batch      TallyExportBatch  @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@index([batchId])
+}

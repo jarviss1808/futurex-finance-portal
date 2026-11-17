@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres:17.6-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: futurex
+      POSTGRES_USER: futurex
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: ["postgres_data:/var/lib/postgresql/data", "./backups:/backups"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U futurex -d futurex"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [private]
+  app:
+    build: ./web
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://futurex:${POSTGRES_PASSWORD}@db:5432/futurex?schema=public
+      SESSION_COOKIE_NAME: futurex_session
+      SESSION_TTL_HOURS: 12
+      PRIVATE_STORAGE_ROOT: /var/lib/futurex/private
+      APP_ORIGIN: ${APP_ORIGIN:?set APP_ORIGIN}
+      LOGIN_ID_DOMAIN: ${LOGIN_ID_DOMAIN:-futurex.local}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      SENDGRID_FROM_EMAIL: ${SENDGRID_FROM_EMAIL:-}
+      SENDGRID_FROM_NAME: ${SENDGRID_FROM_NAME:-Accounts Futurex Trade}
+      SENDGRID_REPLY_TO: ${SENDGRID_REPLY_TO:-}
+      SENDGRID_AUTO_SEND: ${SENDGRID_AUTO_SEND:-false}
+      SENDGRID_DRY_RUN: ${SENDGRID_DRY_RUN:-false}
+      EMAIL_TEST_RECIPIENT: ${EMAIL_TEST_RECIPIENT:-}
+    volumes: ["private_documents:/var/lib/futurex/private"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [private]
+  migrate:
+    build:
+      context: ./web
+      target: build
+    environment:
+      DATABASE_URL: postgresql://futurex:${POSTGRES_PASSWORD}@db:5432/futurex?schema=public
+    command: ["npx", "prisma", "migrate", "deploy"]
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [private]
+  nginx:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes: ["./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro", "./deploy/certs:/etc/nginx/certs:ro"]
+    depends_on:
+      app: { condition: service_healthy }
+    networks: [private]
+networks:
+  private:
+volumes:
+  postgres_data:
+  private_documents:

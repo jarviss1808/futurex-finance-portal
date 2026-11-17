@@ -1,0 +1,12 @@
+# Private runtime data, backups and one-time credential files must never be committed.
+.env
+.runtime/
+tmp/
+backups/
+*CONFIDENTIAL*
+/docs/CHAT_HANDOFF*.md
+/*.pdf
+/*.png
+/*.jpeg
+/*.zip
+/Futurex-Finance-Portal-FINAL-*/
