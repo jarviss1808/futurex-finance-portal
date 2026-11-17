@@ -10,3 +10,5 @@ backups/
 /*.jpeg
 /*.zip
 /Futurex-Finance-Portal-FINAL-*/
+
+.vercel
