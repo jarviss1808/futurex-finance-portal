@@ -4,6 +4,15 @@ Updated: 2026-11-17
 
 ## Implemented and freshly verified
 
+### 2026-11-17 — Public Vercel production deployment
+
+- Published the private GitHub repository to Vercel at `https://futurex-finance-portal.vercel.app` with `web` as the project root. The final deployment has no Vercel authentication wall and the application login remains the only access boundary.
+- Applied all 12 Prisma migrations to a dedicated Prisma Postgres production database. Restored the verified local data transactionally and reconciled 13 users, 6 immutable financial documents and 1 organization; existing login IDs/password hashes, document numbers and audit history were preserved.
+- Connected a Private Vercel Blob store using OIDC credentials and uploaded the approved signatory stamp at its existing private storage key. Direct unauthenticated access returns HTTP 403.
+- The one-time data-import endpoint, token and automation bypass were removed before the final deployment. Deployment packaging now excludes local environments, databases, backups, credentials, build caches and dependencies.
+- Live verification passes: public health and login HTTP 200, HSTS and CSP present, poster HTTP 200, Admin and Soumo logins HTTP 200, Admin document listing HTTP 200, employee access to an Admin document HTTP 404, removed bootstrap endpoint HTTP 404, and issued PDF/DOCX/XLSX downloads HTTP 200 with private/no-store caching.
+- SendGrid remains deliberately in dry-run mode with no production API key. Admin MFA has a production encryption key but enrollment and mandatory enforcement remain disabled pending recovery validation.
+
 ### 2026-11-17 — Vercel/GitHub deployment preparation
 
 - Added an explicit private-storage backend with local/Docker filesystem compatibility and authenticated Vercel Private Blob support for payment proofs, private downloads and the approved signature. Storage keys remain server-authorized and traversal-protected.
@@ -101,13 +110,13 @@ Updated: 2026-11-17
 
 1. **High:** Tax Invoice numbering, foreign-event statutory classification, e-invoice applicability/provider integration and final statutory document-template approval still require authorization. The PI series, Delhi GST split logic and supplied signatory stamp are configured; the application will not fabricate remaining statutory values.
 2. **High:** Full browser E2E for every PI, Tax Invoice, adjustment, payment, receipt and Tally workflow remains to be automated; live health/login/dashboard and PostgreSQL authorization/concurrency paths are verified.
-3. **Medium:** Docker container startup and persistent-volume restart remain unverified because Docker Engine is not installed. Native Windows localhost operation is verified.
-4. **Medium:** Backup scheduling, encryption, off-host retention and monitoring still require production-host configuration, although an isolated backup/restore drill now passes.
+3. **Medium:** Scheduled Prisma Postgres backups, retention monitoring and a Vercel-to-isolated-PostgreSQL restore drill still require operational setup. The native PostgreSQL backup/restore drill passes and the final handoff dump remains available locally.
+4. **Low:** Docker container startup remains unverified because Docker Engine is not installed; this no longer blocks the active Vercel deployment but still applies to the optional self-hosted Docker path.
 5. **Medium:** The supplied logo and approved signatory stamp are integrated, but reusable branding/signature upload management and an external e-invoice provider are not implemented; statutory issuance remains safely gated until authorized configuration exists.
 6. **High:** Master Specification stages still pending include relationship transfer and sales-credit attribution, bookings, cumulative receipt version entities, imports and full browser acceptance automation. (Payment correction history, payment proofs, in-app attention badges and reminders are now done.)
 7. **High:** SendGrid is configured with a verified sender, but the account has 0 email credits; renew the SendGrid plan before relying on PI emails, reminders or payment confirmations. The SendGrid API key was shared in chat — rotate it after go-live.
-8. **Medium:** `npm audit --audit-level=high` passes with no high/critical finding, but reports eight moderate findings: one Next.js information-disclosure advisory affecting 16.4.3 and seven `minimatch` findings through the ESLint/TypeScript development toolchain. Use the guided Next security upgrade and regression testing; do not blindly force the lint dependency chain.
+8. **Low:** Dependency audit currently reports zero known vulnerabilities. Prisma 8 is only a release candidate and was not adopted; remain on tested Prisma 7.10.1 until a maintained stable migration is available.
 
 ## Deployment readiness
 
-**Localhost ready for authorized configuration and use. Not yet approved for public production.** Native PostgreSQL persistence, migrations, backup/restore, build, tests, health and authenticated login are verified. Public production approval still requires the configuration and operational controls above.
+**Public PI-management deployment is live and operational with authenticated Admin/Employee access. Conditional go-live.** Core PI, reporting, private-download, role-isolation and generated-document paths are verified on Vercel. Do not rely on outbound email until SendGrid is rotated/funded and dry-run is disabled; do not use statutory Tax Invoice/e-invoice paths until the listed accounting authorizations and provider configuration are completed.

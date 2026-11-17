@@ -1,12 +1,12 @@
 # Deployment
 
-This is not production-ready until all blockers in `STATUS.md` are closed.
+The Vercel deployment is live at `https://futurex-finance-portal.vercel.app`. It is conditionally ready for PI-management use; the statutory and operational restrictions in `STATUS.md` remain binding.
 
 The supported runtime for this audited release is Node.js `>=24.22.3 <25`. Do not run the service on the older Windows Node 24.20.0 installation.
 
 ## Vercel deployment
 
-Use the GitHub repository with `web` as the Vercel root directory. Connect a pooled managed PostgreSQL database in the same/nearest region as the Vercel functions and connect a **Private** Vercel Blob store. Configure `PRIVATE_STORAGE_BACKEND=vercel-blob`; keep `filesystem` for Windows/Docker deployments. Never use Vercel's ephemeral function filesystem for payment proofs, approved signatures or customer documents.
+The private GitHub repository is connected with `web` as the Vercel root directory. Production uses Prisma Postgres and a **Private** Vercel Blob store in `iad1`, with `PRIVATE_STORAGE_BACKEND=vercel-blob`; keep `filesystem` for Windows/Docker deployments. Never use Vercel's ephemeral function filesystem for payment proofs, approved signatures or customer documents.
 
 The database must be migrated and populated before traffic is enabled. For an existing installation, restore the verified PostgreSQL backup into the managed database so user IDs, password hashes, immutable snapshots, numbering counters and audit history remain unchanged. Upload every referenced private storage key to Private Blob before issuance/download testing. Do not expose an empty database as production.
 
