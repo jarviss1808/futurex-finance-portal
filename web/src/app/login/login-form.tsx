@@ -18,7 +18,7 @@ export function LoginForm() {
     setPending(false);
   }
   return <form className="stack form" onSubmit={submit}>
-    <label>Login ID or email<input name="login" autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="e.g. jagriti" required /></label>
+    <label>Login ID or email<input name="login" autoComplete="username" autoCapitalize="none" spellCheck={false} required /></label>
     <label>Password<input name="password" type="password" autoComplete="current-password" required /></label>
     {error && <p className="error" role="alert">{error}</p>}
     <button disabled={pending}>{pending ? "Signing in…" : "Sign in"}</button>

@@ -4,6 +4,13 @@ Updated: 2026-11-17
 
 ## Implemented and freshly verified
 
+### 2026-11-17 — Live demo-data reset
+
+- At the owner's explicit request, removed the three confirmed demo clients, six demo PIs (`FUT/PI/26-27/001` through `006`) and two linked verified demo payments from the live Vercel database. Users, roles, exhibitions, tax rules, branding and company configuration were preserved.
+- Saved and checksum-verified a recoverable pre-cleanup JSON/GZip backup at `backups/live-demo-cleanup/futurex-live-before-demo-cleanup-20261117-verified.json.gz` before the transaction.
+- The PI series remains at next number `7`; deleted demo numbers are not reusable. The guarded one-time cleanup endpoint and secret were removed immediately afterward.
+- Removed the employee-specific `e.g. jagriti` placeholder from the public login ID field.
+
 ### 2026-11-17 — Public Vercel production deployment
 
 - Published the private GitHub repository to Vercel at `https://futurex-finance-portal.vercel.app` with `web` as the project root. The final deployment has no Vercel authentication wall and the application login remains the only access boundary.
