@@ -95,10 +95,260 @@ export async function generatePdf(snapshot: DocumentSnapshot): Promise<Uint8Arra
     return at - 24;
   };
 
-  frame();
-  draw("BILL TO", 45, 632, 7, true); draw(snapshot.customerName, 45, 616, 10, true, 245); drawWrapped(snapshot.customerAddress, 45, 601, 245, 8, 3); if (snapshot.customerGstin) draw(`GSTIN: ${snapshot.customerGstin}`, 45, 566, 8);
-  draw("EXHIBITION", 320, 632, 7, true); if (snapshot.event) { const eventRows = drawWrapped(`${snapshot.event.name}${snapshot.event.edition ? ` - ${snapshot.event.edition}` : ""}`, 320, 616, 225, 9, 3); let eventY = 616 - eventRows * 12 - 2; if (snapshot.event.startsOn && snapshot.event.endsOn) { draw(`${displayDate(snapshot.event.startsOn)} - ${displayDate(snapshot.event.endsOn)}`, 320, eventY, 8, false, 225); eventY -= 14; } const venueRows = drawWrapped(`${snapshot.event.venue}, ${snapshot.event.city}${snapshot.event.stateRegion ? `, ${snapshot.event.stateRegion}` : ""}, ${snapshot.event.countryCode}`, 320, eventY, 225, 8, 2); eventY -= venueRows * 11 + 2; draw(`Stall No: ${snapshot.stallNumber ?? ""}`, 320, eventY, 8, false, 225); }
-  let y = tableHeader(515);
+  
+const wrapBillText = (
+  text: string,
+  font: PDFFont,
+  size: number,
+  width: number
+): string[] => {
+  const result: string[] = [];
+
+  for (const paragraph of text.split(/\r?\n/)) {
+    if (!paragraph.trim()) {
+      result.push("");
+      continue;
+    }
+
+    const words = paragraph.trim().split(/\s+/);
+    let current = "";
+
+    for (const word of words) {
+      // Split exceptionally long words as well.
+      let remaining = word;
+
+      while (
+        remaining &&
+        font.widthOfTextAtSize(remaining, size) > width
+      ) {
+        let cut = 1;
+
+        while (
+          cut < remaining.length &&
+          font.widthOfTextAtSize(
+            remaining.slice(0, cut + 1),
+            size
+          ) <= width
+        ) {
+          cut++;
+        }
+
+        if (current) {
+          result.push(current);
+          current = "";
+        }
+
+        result.push(remaining.slice(0, cut));
+        remaining = remaining.slice(cut);
+      }
+
+      if (!remaining) continue;
+
+      const candidate = current
+        ? `${current} ${remaining}`
+        : remaining;
+
+      if (
+        font.widthOfTextAtSize(candidate, size) <= width
+      ) {
+        current = candidate;
+      } else {
+        if (current) result.push(current);
+        current = remaining;
+      }
+    }
+
+    if (current) result.push(current);
+  }
+
+  return result;
+};
+
+const drawBillText = (
+  text: string,
+  x: number,
+  startY: number,
+  width: number,
+  size: number,
+  lineHeight: number,
+  strong = false
+): number => {
+  const font = strong ? bold : regular;
+  const rows = wrapBillText(text, font, size, width);
+
+  rows.forEach((row, index) => {
+    if (!row) return;
+
+    page.drawText(row, {
+      x,
+      y: startY - index * lineHeight,
+      size,
+      font,
+      color: ink,
+    });
+  });
+
+  return startY - rows.length * lineHeight;
+};
+
+
+
+frame();
+
+// ======================================
+// BILL TO — DYNAMIC VERTICAL LAYOUT
+// ======================================
+
+const billX = 45;
+const billWidth = 245;
+
+draw("BILL TO", billX, 632, 7, true);
+
+let billY = 616;
+
+// 1. CLIENT NAME — FIRST, BOLD
+billY = drawBillText(
+  snapshot.customerName,
+  billX,
+  billY,
+  billWidth,
+  10,
+  13,
+  true
+);
+
+// Space between name and address
+billY -= 4;
+
+// 2. BILLING ADDRESS — BELOW NAME
+if (snapshot.customerAddress.trim()) {
+  billY = drawBillText(
+    snapshot.customerAddress,
+    billX,
+    billY,
+    billWidth,
+    8,
+    11,
+    false
+  );
+
+  billY -= 5;
+}
+
+// 3. GSTIN — BELOW ADDRESS
+if (snapshot.customerGstin) {
+  billY = drawBillText(
+    `GSTIN: ${snapshot.customerGstin}`,
+    billX,
+    billY,
+    billWidth,
+    8,
+    11,
+    false
+  );
+}
+
+// Prevent exceptionally long billing details
+// from silently overflowing the PDF page.
+if (billY < 110) {
+  throw new Error(
+    "Billing details are too long for the PDF layout"
+  );
+}
+
+// ======================================
+// EXHIBITION — EXISTING DETAILS
+// ======================================
+
+const eventX = 320;
+const eventWidth = 225;
+
+draw("EXHIBITION", eventX, 632, 7, true);
+
+let eventY = 616;
+
+if (snapshot.event) {
+  const eventRows = drawWrapped(
+    `${snapshot.event.name}${
+      snapshot.event.edition
+        ? ` - ${snapshot.event.edition}`
+        : ""
+    }`,
+    eventX,
+    eventY,
+    eventWidth,
+    9,
+    3
+  );
+
+  eventY -= eventRows * 12 + 2;
+
+  if (
+    snapshot.event.startsOn &&
+    snapshot.event.endsOn
+  ) {
+    draw(
+      `${displayDate(snapshot.event.startsOn)} - ` +
+      displayDate(snapshot.event.endsOn),
+      eventX,
+      eventY,
+      8,
+      false,
+      eventWidth
+    );
+
+    eventY -= 14;
+  }
+
+  const venueRows = drawWrapped(
+    `${snapshot.event.venue}, ` +
+    `${snapshot.event.city}` +
+    `${snapshot.event.stateRegion
+      ? `, ${snapshot.event.stateRegion}`
+      : ""}, ` +
+    snapshot.event.countryCode,
+    eventX,
+    eventY,
+    eventWidth,
+    8,
+    2
+  );
+
+  eventY -= venueRows * 11 + 2;
+
+  draw(
+    `Stall No: ${snapshot.stallNumber ?? ""}`,
+    eventX,
+    eventY,
+    8,
+    false,
+    eventWidth
+  );
+
+  eventY -= 11;
+}
+
+// ======================================
+// TABLE — AVOID BILL TO OVERLAP
+// ======================================
+
+const firstTableY = Math.min(
+  515,
+  billY - 18,
+  eventY - 18
+);
+
+let y: number;
+
+if (firstTableY < 230) {
+  // Billing details remain on page one.
+  // The table starts cleanly on page two.
+  newPage(true);
+  y = tableHeader(615);
+} else {
+  y = tableHeader(firstTableY);
+}
+
   for (const line of snapshot.lines) {
     const descriptionRows = wrap(regular, line.description, 205, 8);
     const rowHeight = Math.max(23, descriptionRows.length * 11 + 7);
