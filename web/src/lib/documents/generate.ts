@@ -21,6 +21,7 @@ export type DocumentSnapshot = {
   gstRegisteredAddress?: string;
   bankDetails?: BankDetails;
   signatureImageBase64?: string;
+  stallNumber?: string;
   event?: { name: string; edition: string | null; startsOn?: string; endsOn?: string; venue: string; city: string; stateRegion?: string | null; countryCode: string };
   customerName: string;
   customerAddress: string;
@@ -96,7 +97,7 @@ export async function generatePdf(snapshot: DocumentSnapshot): Promise<Uint8Arra
 
   frame();
   draw("BILL TO", 45, 632, 7, true); draw(snapshot.customerName, 45, 616, 10, true, 245); drawWrapped(snapshot.customerAddress, 45, 601, 245, 8, 3); if (snapshot.customerGstin) draw(`GSTIN: ${snapshot.customerGstin}`, 45, 566, 8);
-  draw("EXHIBITION", 320, 632, 7, true); if (snapshot.event) { const eventRows = drawWrapped(`${snapshot.event.name}${snapshot.event.edition ? ` - ${snapshot.event.edition}` : ""}`, 320, 616, 225, 9, 3); let eventY = 616 - eventRows * 12 - 2; if (snapshot.event.startsOn && snapshot.event.endsOn) { draw(`${displayDate(snapshot.event.startsOn)} - ${displayDate(snapshot.event.endsOn)}`, 320, eventY, 8, false, 225); eventY -= 14; } drawWrapped(`${snapshot.event.venue}, ${snapshot.event.city}${snapshot.event.stateRegion ? `, ${snapshot.event.stateRegion}` : ""}, ${snapshot.event.countryCode}`, 320, eventY, 225, 8, 2); }
+  draw("EXHIBITION", 320, 632, 7, true); if (snapshot.event) { const eventRows = drawWrapped(`${snapshot.event.name}${snapshot.event.edition ? ` - ${snapshot.event.edition}` : ""}`, 320, 616, 225, 9, 3); let eventY = 616 - eventRows * 12 - 2; if (snapshot.event.startsOn && snapshot.event.endsOn) { draw(`${displayDate(snapshot.event.startsOn)} - ${displayDate(snapshot.event.endsOn)}`, 320, eventY, 8, false, 225); eventY -= 14; } const venueRows = drawWrapped(`${snapshot.event.venue}, ${snapshot.event.city}${snapshot.event.stateRegion ? `, ${snapshot.event.stateRegion}` : ""}, ${snapshot.event.countryCode}`, 320, eventY, 225, 8, 2); eventY -= venueRows * 11 + 2; draw(`Stall No: ${snapshot.stallNumber ?? ""}`, 320, eventY, 8, false, 225); }
   let y = tableHeader(515);
   for (const line of snapshot.lines) {
     const descriptionRows = wrap(regular, line.description, 205, 8);
@@ -158,6 +159,7 @@ export async function generateDocx(snapshot: DocumentSnapshot): Promise<Buffer> 
     new Paragraph({ children: [new TextRun({ text: `Exhibition: ${snapshot.event.name}${snapshot.event.edition ? ` — ${snapshot.event.edition}` : ""}`, bold: true })] }),
     ...(snapshot.event.startsOn && snapshot.event.endsOn ? [new Paragraph(`${displayDate(snapshot.event.startsOn)} - ${displayDate(snapshot.event.endsOn)}`)] : []),
     new Paragraph(`${snapshot.event.venue}, ${snapshot.event.city}${snapshot.event.stateRegion ? `, ${snapshot.event.stateRegion}` : ""}, ${snapshot.event.countryCode}`),
+    new Paragraph(`Stall No: ${snapshot.stallNumber ?? ""}`),
   ] : [];
   const taxLines = snapshot.taxBreakdown?.length
     ? snapshot.taxBreakdown.map((tax) => new Paragraph(`${tax.label}: ${amount(tax.amountPaise, snapshot.currency)}`))
@@ -187,12 +189,13 @@ export async function generateDocx(snapshot: DocumentSnapshot): Promise<Buffer> 
 export async function generateXlsx(snapshot: DocumentSnapshot): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Futurex Finance Portal";
-  const sheet = workbook.addWorksheet("Document", { views: [{ state: "frozen", ySplit: snapshot.event ? (snapshot.event.startsOn && snapshot.event.endsOn ? 12 : 11) : 9 }] });
+  const headerRow = snapshot.event ? (snapshot.event.startsOn && snapshot.event.endsOn ? 13 : 12) : 9;
+  const sheet = workbook.addWorksheet("Document", { views: [{ state: "frozen", ySplit: headerRow }] });
   const logoId = workbook.addImage({ filename: logoPath(), extension: "png" });
   sheet.addImage(logoId, { tl: { col: 0, row: 0 }, ext: { width: 280, height: 63 } });
   sheet.addRow([]); sheet.addRow([]); sheet.addRow([]);
   sheet.addRow([snapshot.companyName]); sheet.addRow([snapshot.companyGstin ? `GSTIN ${snapshot.companyGstin}` : ""]); sheet.addRow([snapshot.title, snapshot.number, snapshot.issueDate]); sheet.addRow([snapshot.customerName]); sheet.addRow([snapshot.customerAddress]);
-  if (snapshot.event) { sheet.addRow([`${snapshot.event.name}${snapshot.event.edition ? ` — ${snapshot.event.edition}` : ""}`]); if (snapshot.event.startsOn && snapshot.event.endsOn) sheet.addRow([`${displayDate(snapshot.event.startsOn)} - ${displayDate(snapshot.event.endsOn)}`]); sheet.addRow([`${snapshot.event.venue}, ${snapshot.event.city}${snapshot.event.stateRegion ? `, ${snapshot.event.stateRegion}` : ""}, ${snapshot.event.countryCode}`]); }
+  if (snapshot.event) { sheet.addRow([`${snapshot.event.name}${snapshot.event.edition ? ` — ${snapshot.event.edition}` : ""}`]); if (snapshot.event.startsOn && snapshot.event.endsOn) sheet.addRow([`${displayDate(snapshot.event.startsOn)} - ${displayDate(snapshot.event.endsOn)}`]); sheet.addRow([`${snapshot.event.venue}, ${snapshot.event.city}${snapshot.event.stateRegion ? `, ${snapshot.event.stateRegion}` : ""}, ${snapshot.event.countryCode}`]); sheet.addRow(["Stall No", snapshot.stallNumber ?? ""]); }
   sheet.addRow(["Description", "HSN/SAC", "Quantity", "Unit", `Rate (${snapshot.currency})`, `Amount (${snapshot.currency})`]);
   for (const line of snapshot.lines) sheet.addRow([line.description, line.classification, line.quantity, line.unit, { formula: `${line.unitPricePaise}/100` }, { formula: `${line.amountPaise}/100` }]);
   if (snapshot.taxBreakdown?.length) for (const tax of snapshot.taxBreakdown) sheet.addRow([tax.label, "", "", "", "", { formula: `${tax.amountPaise}/100` }]);
@@ -209,6 +212,6 @@ export async function generateXlsx(snapshot: DocumentSnapshot): Promise<Buffer> 
     sheet.addRow(["Bank address", snapshot.bankDetails.bankAddress]);
   }
   if (snapshot.notes) sheet.addRow(["NOTE", snapshot.notes]);
-  sheet.getColumn(1).width = 42; sheet.getColumn(2).width = 14; sheet.getColumn(3).width = 11; sheet.getColumn(4).width = 10; sheet.getColumn(5).width = 16; sheet.getColumn(6).width = 18; sheet.getColumn(5).numFmt = '#,##0.00'; sheet.getColumn(6).numFmt = '#,##0.00'; sheet.getRow(snapshot.event ? (snapshot.event.startsOn && snapshot.event.endsOn ? 12 : 11) : 9).font = { bold: true }; sheet.getRow(sheet.rowCount).font = { bold: true };
+  sheet.getColumn(1).width = 42; sheet.getColumn(2).width = 14; sheet.getColumn(3).width = 11; sheet.getColumn(4).width = 10; sheet.getColumn(5).width = 16; sheet.getColumn(6).width = 18; sheet.getColumn(5).numFmt = '#,##0.00'; sheet.getColumn(6).numFmt = '#,##0.00'; sheet.getRow(headerRow).font = { bold: true }; sheet.getRow(sheet.rowCount).font = { bold: true };
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }

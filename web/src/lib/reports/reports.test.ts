@@ -74,7 +74,7 @@ describe("official PI balances", () => {
   });
 });
 
-const row = (overrides: Partial<PiRow>): PiRow => ({ id: "d1", number: "FUT/PI/26-27/001", issuedAt: new Date("2026-11-10T06:00:00.000Z"), status: "ISSUED", currency: "INR", category: "EXHIBITION_PARTICIPATION", area: "9", rate: 900_000n, taxable: 8_100_000n, cgst: 0n, sgst: 0n, igst: 1_458_000n, tax: 1_458_000n, total: 10_000_000n, tds: 0n, confirmedTds: 0n, pendingTds: 0n, netReceivable: 10_000_000n, approved: 5_000_000n, pending: 0n, declined: 0n, outstanding: 5_000_000n, state: "PARTIAL", owner: { id: "u1", name: "Employee A" }, client: { id: "c1", legalName: "=HYPERLINK(\"x\") Ltd", contactName: null, contactEmail: null, additionalEmails: [] }, event: { id: "e1", name: "India Battery Show", venue: "Auto Cluster", city: "Pune", countryCode: "IN" }, ...overrides });
+const row = (overrides: Partial<PiRow>): PiRow => ({ id: "d1", number: "FUT/PI/26-27/001", issuedAt: new Date("2026-11-10T06:00:00.000Z"), status: "ISSUED", currency: "INR", category: "EXHIBITION_PARTICIPATION", stallNumber: "A-12", area: "9", rate: 900_000n, taxable: 8_100_000n, cgst: 0n, sgst: 0n, igst: 1_458_000n, tax: 1_458_000n, total: 10_000_000n, tds: 0n, confirmedTds: 0n, pendingTds: 0n, netReceivable: 10_000_000n, approved: 5_000_000n, pending: 0n, declined: 0n, outstanding: 5_000_000n, state: "PARTIAL", owner: { id: "u1", name: "Employee A" }, client: { id: "c1", legalName: "=HYPERLINK(\"x\") Ltd", contactName: null, contactEmail: null, additionalEmails: [] }, event: { id: "e1", name: "India Battery Show", venue: "Auto Cluster", city: "Pune", countryCode: "IN" }, ...overrides });
 
 describe("report tables and exports", () => {
   const register = piRegisterTable([row({}), row({ id: "d2", number: "FUT/PI/26-27/002", total: 5_000n, approved: 0n, outstanding: 5_000n, state: "UNPAID", client: { id: "c2", legalName: "Société Générale – ಕನ್ನಡ", contactName: null, contactEmail: null, additionalEmails: [] } })], { title: "PI register", subtitle: "This month" });
@@ -82,6 +82,8 @@ describe("report tables and exports", () => {
     expect(register.footer).toHaveLength(1);
     expect(register.footer[0].value).toBe(10_005_000n);
     expect(register.footer[0].outstanding).toBe(5_005_000n);
+    expect(register.columns.some((column) => column.key === "stallNumber")).toBe(true);
+    expect(register.rows[0].stallNumber).toBe("A-12");
   });
   it("exports CSV with decimal amounts and spreadsheet-formula protection", () => {
     const csv = tableToCsv(register);

@@ -10,6 +10,7 @@ import { readPrivateFile } from "@/lib/storage/private-files";
 import { withTransactionRetry } from "@/lib/transactions";
 import { findActiveSeries } from "./series";
 import { documentNotes } from "./foreign-venue-note";
+import { customTaxPolicy, parseCustomEvent } from "./custom-event";
 
 export type IssueOptions = { seriesId?: string; einvoiceStatus?: EinvoiceStatus; irn?: string; acknowledgementNumber?: string; signedQrPayload?: string };
 
@@ -21,12 +22,19 @@ export async function issueDocument(actor: Actor, documentId: string, options: I
     if (!document) throw new HttpError(404, "Document not found");
     const profile = await tx.companyProfile.findUnique({ where: { organizationId: actor.organizationId } });
     if (document.status !== "DRAFT" && document.status !== "VALIDATED") throw new HttpError(409, "Only a draft or validated document can be issued");
-    if (!document.event) throw new HttpError(409, "Exhibition is required");
-    if (!document.event.taxConfigApproved || !document.event.taxRuleId || document.event.taxRuleId !== document.taxRuleId) throw new HttpError(409, "Exhibition tax configuration changed; create a new draft");
+    const customEvent = document.eventId ? null : parseCustomEvent(document.customEvent);
+    if (!document.event && !customEvent) throw new HttpError(409, "Exhibition is required");
+    if (document.event && (!document.event.taxConfigApproved || !document.event.taxRuleId || document.event.taxRuleId !== document.taxRuleId)) throw new HttpError(409, "Exhibition tax configuration changed; create a new draft");
     if (!document.taxRule?.approved) throw new HttpError(409, "Exhibition tax configuration is not approved");
+    if (customEvent) {
+      if (document.type !== "PROFORMA" || !document.piCategory || !["BRANDING_FLEX_FRAME", "STALL_FABRICATION"].includes(document.piCategory)) throw new HttpError(409, "Custom exhibitions are allowed only for Branding and Stall Fabrication PIs");
+      const policy = customTaxPolicy(customEvent.countryCode);
+      if (document.taxRule.taxType !== policy.taxType || document.taxRule.rateBasisPoints !== policy.rateBasisPoints) throw new HttpError(409, "Custom exhibition tax policy changed; create a new draft");
+    }
+    const eventCountryCode = customEvent?.countryCode ?? document.event!.countryCode;
     let currentTax;
     try {
-      currentTax = deriveDocumentTaxTreatment({ eventCountryCode: document.event.countryCode, taxType: document.taxRule.taxType, rateBasisPoints: document.taxRule.rateBasisPoints, companyGstin: profile?.gstin, clientGstin: document.client.gstin });
+      currentTax = deriveDocumentTaxTreatment({ eventCountryCode, taxType: document.taxRule.taxType, rateBasisPoints: document.taxRule.rateBasisPoints, companyGstin: profile?.gstin, clientGstin: document.client.gstin });
     } catch (error) {
       throw new HttpError(409, error instanceof Error ? error.message : "Unable to determine GST treatment");
     }
@@ -39,7 +47,7 @@ export async function issueDocument(actor: Actor, documentId: string, options: I
     if (!series) throw new HttpError(409, "No active number series is enabled for this document type. Ask an Admin to enable one.");
     const eStatus = ["TAX_INVOICE", "CREDIT_NOTE", "DEBIT_NOTE"].includes(document.type) ? (options.einvoiceStatus ?? "UNRESOLVED") : "NOT_APPLICABLE";
     if (["TAX_INVOICE", "CREDIT_NOTE", "DEBIT_NOTE"].includes(document.type)) requireEinvoiceDecisionAuthority(actor, eStatus);
-    assertIssuable({ documentType: document.type, seriesConfigured: series.configured, taxConfigApproved: document.event.taxConfigApproved && Boolean(document.taxRule?.approved), snapshotComplete: Boolean(document.snapshot), einvoiceStatus: eStatus, irn: options.irn, acknowledgementNumber: options.acknowledgementNumber, signedQrPayload: options.signedQrPayload });
+    assertIssuable({ documentType: document.type, seriesConfigured: series.configured, taxConfigApproved: Boolean(document.taxRule?.approved) && (customEvent ? true : Boolean(document.event?.taxConfigApproved)), snapshotComplete: Boolean(document.snapshot), einvoiceStatus: eStatus, irn: options.irn, acknowledgementNumber: options.acknowledgementNumber, signedQrPayload: options.signedQrPayload });
     const number = await allocateDocumentNumber(tx as unknown as Parameters<typeof allocateDocumentNumber>[0], series.id, series);
     const issuedAt = new Date();
     let signatureImageBase64: string | undefined;
@@ -50,7 +58,8 @@ export async function issueDocument(actor: Actor, documentId: string, options: I
     }
     const organizationSnapshot = profile ? { name: document.organization.name, legalName: profile.legalName, registeredAddress: profile.registeredAddress, corporateAddress: profile.corporateAddress, gstRegisteredAddress: profile.gstRegisteredAddress, gstin: profile.gstin, pan: profile.pan, cin: profile.cin, accountsEmail: profile.accountsEmail, ...(profile.bankDetails ? { bankDetails: profile.bankDetails } : {}), ...(signatureImageBase64 ? { signatureImageBase64 } : {}) } : { name: document.organization.name };
     const dateAtVenue = (value: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: document.event!.timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(value);
-    const snapshot = { ...draftSnapshot, notes: documentNotes({ eventCountryCode: document.event.countryCode, taxable: currentTax.taxable, userNotes: typeof draftSnapshot.notes === "string" ? draftSnapshot.notes : "" }), number, issuedAt: issuedAt.toISOString(), organization: organizationSnapshot, client: { legalName: document.client.legalName, billingAddress: document.client.billingAddress, gstin: document.client.gstin }, event: { name: document.event.name, edition: document.event.edition, startsOn: dateAtVenue(document.event.startsOn), endsOn: dateAtVenue(document.event.endsOn), venue: document.event.venue, city: document.event.city, stateRegion: document.event.stateRegion, countryCode: document.event.countryCode } } satisfies Prisma.JsonObject;
+    const eventSnapshot = customEvent ?? { name: document.event!.name, edition: document.event!.edition ?? "", startsOn: dateAtVenue(document.event!.startsOn), endsOn: dateAtVenue(document.event!.endsOn), venue: document.event!.venue, city: document.event!.city, stateRegion: document.event!.stateRegion ?? "", countryCode: document.event!.countryCode };
+    const snapshot = { ...draftSnapshot, stallNumber: document.stallNumber ?? "", notes: documentNotes({ eventCountryCode, taxable: currentTax.taxable, userNotes: typeof draftSnapshot.notes === "string" ? draftSnapshot.notes : "" }), number, issuedAt: issuedAt.toISOString(), organization: organizationSnapshot, client: { legalName: document.client.legalName, billingAddress: document.client.billingAddress, gstin: document.client.gstin }, event: eventSnapshot } satisfies Prisma.JsonObject;
     const updated = await tx.financialDocument.updateMany({ where: { id: document.id, version: document.version, status: { in: ["DRAFT", "VALIDATED"] } }, data: { number, seriesId: series.id, status: "ISSUED", issuedAt, snapshot, version: { increment: 1 }, einvoiceStatus: eStatus, irn: options.irn || null, acknowledgementNumber: options.acknowledgementNumber || null, signedQrPayload: options.signedQrPayload || null } });
     if (updated.count !== 1) throw new HttpError(409, "Document changed during issuance");
     await tx.auditEvent.create({ data: { organizationId: actor.organizationId, actorId: actor.id, action: "DOCUMENT_ISSUED", entityType: "FinancialDocument", entityId: document.id, metadata: { number, type: document.type } } });

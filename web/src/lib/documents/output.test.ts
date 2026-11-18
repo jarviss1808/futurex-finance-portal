@@ -36,4 +36,9 @@ describe("toOutputSnapshot", () => {
   it("preserves immutable document notes", () => {
     expect(toOutputSnapshot({ ...snapshot(), notes: "Approved foreign-venue note" }).notes).toBe("Approved foreign-venue note");
   });
+
+  it("preserves the optional stall number", () => {
+    expect(toOutputSnapshot({ ...snapshot(), stallNumber: "A-12" }).stallNumber).toBe("A-12");
+    expect(toOutputSnapshot(snapshot()).stallNumber).toBe("");
+  });
 });

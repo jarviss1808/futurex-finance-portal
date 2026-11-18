@@ -242,6 +242,8 @@ export const FinancialDocumentScalarFieldEnum = {
   ownerId: 'ownerId',
   clientId: 'clientId',
   eventId: 'eventId',
+  customEvent: 'customEvent',
+  stallNumber: 'stallNumber',
   seriesId: 'seriesId',
   sourceDocumentId: 'sourceDocumentId',
   type: 'type',

@@ -23,4 +23,12 @@ describe("editable and authoritative document outputs", () => {
     const rows = workbook.getWorksheet("Document")!.getRows(1, workbook.getWorksheet("Document")!.rowCount) ?? [];
     expect(rows.some((row) => row.getCell(1).value === "NOTE" && row.getCell(2).value === note)).toBe(true);
   });
+
+  it("includes the optional stall number in XLSX output", async () => {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(await generateXlsx({ ...snapshot, stallNumber: "A-12" }) as never);
+    const sheet = workbook.getWorksheet("Document")!;
+    const rows = sheet.getRows(1, sheet.rowCount) ?? [];
+    expect(rows.some((row) => row.getCell(1).value === "Stall No" && row.getCell(2).value === "A-12")).toBe(true);
+  });
 });

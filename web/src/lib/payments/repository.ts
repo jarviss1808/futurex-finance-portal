@@ -50,7 +50,7 @@ export function paymentWhere(actor: Actor, filters: PaymentFilters = {}): Prisma
 export const paymentListInclude = {
   reportedBy: { select: { id: true, name: true } },
   verifiedBy: { select: { name: true } },
-  allocations: { include: { document: { select: { id: true, number: true, status: true, ownerId: true, totalPaise: true, owner: { select: { name: true } }, client: { select: { legalName: true } }, event: { select: { id: true, name: true } } } } } },
+  allocations: { include: { document: { select: { id: true, number: true, status: true, ownerId: true, totalPaise: true, snapshot: true, correctedSnapshot: true, owner: { select: { name: true } }, client: { select: { legalName: true } }, event: { select: { id: true, name: true } } } } } },
   receipt: { select: { id: true, number: true } },
   proofs: { select: { id: true, fileName: true, mediaType: true, createdAt: true }, orderBy: { createdAt: "asc" } },
 } satisfies Prisma.PaymentInclude;

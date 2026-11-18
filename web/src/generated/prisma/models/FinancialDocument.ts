@@ -52,6 +52,7 @@ export type FinancialDocumentMinAggregateOutputType = {
   ownerId: string | null
   clientId: string | null
   eventId: string | null
+  stallNumber: string | null
   seriesId: string | null
   sourceDocumentId: string | null
   type: $Enums.DocumentType | null
@@ -85,6 +86,7 @@ export type FinancialDocumentMaxAggregateOutputType = {
   ownerId: string | null
   clientId: string | null
   eventId: string | null
+  stallNumber: string | null
   seriesId: string | null
   sourceDocumentId: string | null
   type: $Enums.DocumentType | null
@@ -118,6 +120,8 @@ export type FinancialDocumentCountAggregateOutputType = {
   ownerId: number
   clientId: number
   eventId: number
+  customEvent: number
+  stallNumber: number
   seriesId: number
   sourceDocumentId: number
   type: number
@@ -175,6 +179,7 @@ export type FinancialDocumentMinAggregateInputType = {
   ownerId?: true
   clientId?: true
   eventId?: true
+  stallNumber?: true
   seriesId?: true
   sourceDocumentId?: true
   type?: true
@@ -208,6 +213,7 @@ export type FinancialDocumentMaxAggregateInputType = {
   ownerId?: true
   clientId?: true
   eventId?: true
+  stallNumber?: true
   seriesId?: true
   sourceDocumentId?: true
   type?: true
@@ -241,6 +247,8 @@ export type FinancialDocumentCountAggregateInputType = {
   ownerId?: true
   clientId?: true
   eventId?: true
+  customEvent?: true
+  stallNumber?: true
   seriesId?: true
   sourceDocumentId?: true
   type?: true
@@ -363,6 +371,8 @@ export type FinancialDocumentGroupByOutputType = {
   ownerId: string
   clientId: string
   eventId: string | null
+  customEvent: runtime.JsonValue | null
+  stallNumber: string | null
   seriesId: string | null
   sourceDocumentId: string | null
   type: $Enums.DocumentType
@@ -421,6 +431,8 @@ export type FinancialDocumentWhereInput = {
   ownerId?: Prisma.StringFilter<"FinancialDocument"> | string
   clientId?: Prisma.StringFilter<"FinancialDocument"> | string
   eventId?: Prisma.StringNullableFilter<"FinancialDocument"> | string | null
+  customEvent?: Prisma.JsonNullableFilter<"FinancialDocument">
+  stallNumber?: Prisma.StringNullableFilter<"FinancialDocument"> | string | null
   seriesId?: Prisma.StringNullableFilter<"FinancialDocument"> | string | null
   sourceDocumentId?: Prisma.StringNullableFilter<"FinancialDocument"> | string | null
   type?: Prisma.EnumDocumentTypeFilter<"FinancialDocument"> | $Enums.DocumentType
@@ -471,6 +483,8 @@ export type FinancialDocumentOrderByWithRelationInput = {
   ownerId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
   eventId?: Prisma.SortOrderInput | Prisma.SortOrder
+  customEvent?: Prisma.SortOrderInput | Prisma.SortOrder
+  stallNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   seriesId?: Prisma.SortOrderInput | Prisma.SortOrder
   sourceDocumentId?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -525,6 +539,8 @@ export type FinancialDocumentWhereUniqueInput = Prisma.AtLeast<{
   ownerId?: Prisma.StringFilter<"FinancialDocument"> | string
   clientId?: Prisma.StringFilter<"FinancialDocument"> | string
   eventId?: Prisma.StringNullableFilter<"FinancialDocument"> | string | null
+  customEvent?: Prisma.JsonNullableFilter<"FinancialDocument">
+  stallNumber?: Prisma.StringNullableFilter<"FinancialDocument"> | string | null
   seriesId?: Prisma.StringNullableFilter<"FinancialDocument"> | string | null
   sourceDocumentId?: Prisma.StringNullableFilter<"FinancialDocument"> | string | null
   type?: Prisma.EnumDocumentTypeFilter<"FinancialDocument"> | $Enums.DocumentType
@@ -575,6 +591,8 @@ export type FinancialDocumentOrderByWithAggregationInput = {
   ownerId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
   eventId?: Prisma.SortOrderInput | Prisma.SortOrder
+  customEvent?: Prisma.SortOrderInput | Prisma.SortOrder
+  stallNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   seriesId?: Prisma.SortOrderInput | Prisma.SortOrder
   sourceDocumentId?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -618,6 +636,8 @@ export type FinancialDocumentScalarWhereWithAggregatesInput = {
   ownerId?: Prisma.StringWithAggregatesFilter<"FinancialDocument"> | string
   clientId?: Prisma.StringWithAggregatesFilter<"FinancialDocument"> | string
   eventId?: Prisma.StringNullableWithAggregatesFilter<"FinancialDocument"> | string | null
+  customEvent?: Prisma.JsonNullableWithAggregatesFilter<"FinancialDocument">
+  stallNumber?: Prisma.StringNullableWithAggregatesFilter<"FinancialDocument"> | string | null
   seriesId?: Prisma.StringNullableWithAggregatesFilter<"FinancialDocument"> | string | null
   sourceDocumentId?: Prisma.StringNullableWithAggregatesFilter<"FinancialDocument"> | string | null
   type?: Prisma.EnumDocumentTypeWithAggregatesFilter<"FinancialDocument"> | $Enums.DocumentType
@@ -649,6 +669,8 @@ export type FinancialDocumentScalarWhereWithAggregatesInput = {
 
 export type FinancialDocumentCreateInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -695,6 +717,8 @@ export type FinancialDocumentUncheckedCreateInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -733,6 +757,8 @@ export type FinancialDocumentUncheckedCreateInput = {
 
 export type FinancialDocumentUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -779,6 +805,8 @@ export type FinancialDocumentUncheckedUpdateInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -821,6 +849,8 @@ export type FinancialDocumentCreateManyInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -852,6 +882,8 @@ export type FinancialDocumentCreateManyInput = {
 
 export type FinancialDocumentUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -883,6 +915,8 @@ export type FinancialDocumentUncheckedUpdateManyInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -939,6 +973,8 @@ export type FinancialDocumentCountOrderByAggregateInput = {
   ownerId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
   eventId?: Prisma.SortOrder
+  customEvent?: Prisma.SortOrder
+  stallNumber?: Prisma.SortOrder
   seriesId?: Prisma.SortOrder
   sourceDocumentId?: Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -984,6 +1020,7 @@ export type FinancialDocumentMaxOrderByAggregateInput = {
   ownerId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
   eventId?: Prisma.SortOrder
+  stallNumber?: Prisma.SortOrder
   seriesId?: Prisma.SortOrder
   sourceDocumentId?: Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -1017,6 +1054,7 @@ export type FinancialDocumentMinOrderByAggregateInput = {
   ownerId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
   eventId?: Prisma.SortOrder
+  stallNumber?: Prisma.SortOrder
   seriesId?: Prisma.SortOrder
   sourceDocumentId?: Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -1511,6 +1549,8 @@ export type FinancialDocumentUpdateOneRequiredWithoutTallyExportItemNestedInput 
 
 export type FinancialDocumentCreateWithoutOrganizationInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -1555,6 +1595,8 @@ export type FinancialDocumentUncheckedCreateWithoutOrganizationInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -1626,6 +1668,8 @@ export type FinancialDocumentScalarWhereInput = {
   ownerId?: Prisma.StringFilter<"FinancialDocument"> | string
   clientId?: Prisma.StringFilter<"FinancialDocument"> | string
   eventId?: Prisma.StringNullableFilter<"FinancialDocument"> | string | null
+  customEvent?: Prisma.JsonNullableFilter<"FinancialDocument">
+  stallNumber?: Prisma.StringNullableFilter<"FinancialDocument"> | string | null
   seriesId?: Prisma.StringNullableFilter<"FinancialDocument"> | string | null
   sourceDocumentId?: Prisma.StringNullableFilter<"FinancialDocument"> | string | null
   type?: Prisma.EnumDocumentTypeFilter<"FinancialDocument"> | $Enums.DocumentType
@@ -1657,6 +1701,8 @@ export type FinancialDocumentScalarWhereInput = {
 
 export type FinancialDocumentCreateWithoutOwnerInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -1701,6 +1747,8 @@ export type FinancialDocumentUncheckedCreateWithoutOwnerInput = {
   organizationId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -1749,6 +1797,8 @@ export type FinancialDocumentCreateManyOwnerInputEnvelope = {
 
 export type FinancialDocumentCreateWithoutCorrectedByInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -1794,6 +1844,8 @@ export type FinancialDocumentUncheckedCreateWithoutCorrectedByInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -1873,6 +1925,8 @@ export type FinancialDocumentUpdateManyWithWhereWithoutCorrectedByInput = {
 
 export type FinancialDocumentCreateWithoutClientInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -1917,6 +1971,8 @@ export type FinancialDocumentUncheckedCreateWithoutClientInput = {
   organizationId: string
   ownerId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -1981,6 +2037,8 @@ export type FinancialDocumentUpdateManyWithWhereWithoutClientInput = {
 
 export type FinancialDocumentCreateWithoutEventInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -2025,6 +2083,8 @@ export type FinancialDocumentUncheckedCreateWithoutEventInput = {
   organizationId: string
   ownerId: string
   clientId: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -2089,6 +2149,8 @@ export type FinancialDocumentUpdateManyWithWhereWithoutEventInput = {
 
 export type FinancialDocumentCreateWithoutSeriesInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -2134,6 +2196,8 @@ export type FinancialDocumentUncheckedCreateWithoutSeriesInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
@@ -2197,6 +2261,8 @@ export type FinancialDocumentUpdateManyWithWhereWithoutSeriesInput = {
 
 export type FinancialDocumentCreateWithoutAdjustmentsInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -2242,6 +2308,8 @@ export type FinancialDocumentUncheckedCreateWithoutAdjustmentsInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -2284,6 +2352,8 @@ export type FinancialDocumentCreateOrConnectWithoutAdjustmentsInput = {
 
 export type FinancialDocumentCreateWithoutSourceDocumentInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -2329,6 +2399,8 @@ export type FinancialDocumentUncheckedCreateWithoutSourceDocumentInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
@@ -2387,6 +2459,8 @@ export type FinancialDocumentUpdateToOneWithWhereWithoutAdjustmentsInput = {
 
 export type FinancialDocumentUpdateWithoutAdjustmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2432,6 +2506,8 @@ export type FinancialDocumentUncheckedUpdateWithoutAdjustmentsInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -2485,6 +2561,8 @@ export type FinancialDocumentUpdateManyWithWhereWithoutSourceDocumentInput = {
 
 export type FinancialDocumentCreateWithoutSharesInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -2530,6 +2608,8 @@ export type FinancialDocumentUncheckedCreateWithoutSharesInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -2583,6 +2663,8 @@ export type FinancialDocumentUpdateToOneWithWhereWithoutSharesInput = {
 
 export type FinancialDocumentUpdateWithoutSharesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2628,6 +2710,8 @@ export type FinancialDocumentUncheckedUpdateWithoutSharesInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -2665,6 +2749,8 @@ export type FinancialDocumentUncheckedUpdateWithoutSharesInput = {
 
 export type FinancialDocumentCreateWithoutReceiptForInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -2710,6 +2796,8 @@ export type FinancialDocumentUncheckedCreateWithoutReceiptForInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -2763,6 +2851,8 @@ export type FinancialDocumentUpdateToOneWithWhereWithoutReceiptForInput = {
 
 export type FinancialDocumentUpdateWithoutReceiptForInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2808,6 +2898,8 @@ export type FinancialDocumentUncheckedUpdateWithoutReceiptForInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -2845,6 +2937,8 @@ export type FinancialDocumentUncheckedUpdateWithoutReceiptForInput = {
 
 export type FinancialDocumentCreateWithoutAllocationsInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -2890,6 +2984,8 @@ export type FinancialDocumentUncheckedCreateWithoutAllocationsInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -2943,6 +3039,8 @@ export type FinancialDocumentUpdateToOneWithWhereWithoutAllocationsInput = {
 
 export type FinancialDocumentUpdateWithoutAllocationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2988,6 +3086,8 @@ export type FinancialDocumentUncheckedUpdateWithoutAllocationsInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -3025,6 +3125,8 @@ export type FinancialDocumentUncheckedUpdateWithoutAllocationsInput = {
 
 export type FinancialDocumentCreateWithoutFilesInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -3070,6 +3172,8 @@ export type FinancialDocumentUncheckedCreateWithoutFilesInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -3123,6 +3227,8 @@ export type FinancialDocumentUpdateToOneWithWhereWithoutFilesInput = {
 
 export type FinancialDocumentUpdateWithoutFilesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3168,6 +3274,8 @@ export type FinancialDocumentUncheckedUpdateWithoutFilesInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -3205,6 +3313,8 @@ export type FinancialDocumentUncheckedUpdateWithoutFilesInput = {
 
 export type FinancialDocumentCreateWithoutEmailDeliveriesInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -3250,6 +3360,8 @@ export type FinancialDocumentUncheckedCreateWithoutEmailDeliveriesInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -3303,6 +3415,8 @@ export type FinancialDocumentUpdateToOneWithWhereWithoutEmailDeliveriesInput = {
 
 export type FinancialDocumentUpdateWithoutEmailDeliveriesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3348,6 +3462,8 @@ export type FinancialDocumentUncheckedUpdateWithoutEmailDeliveriesInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -3385,6 +3501,8 @@ export type FinancialDocumentUncheckedUpdateWithoutEmailDeliveriesInput = {
 
 export type FinancialDocumentCreateWithoutTaxRuleInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -3430,6 +3548,8 @@ export type FinancialDocumentUncheckedCreateWithoutTaxRuleInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -3493,6 +3613,8 @@ export type FinancialDocumentUpdateManyWithWhereWithoutTaxRuleInput = {
 
 export type FinancialDocumentCreateWithoutTallyExportItemInput = {
   id?: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
   number?: string | null
@@ -3538,6 +3660,8 @@ export type FinancialDocumentUncheckedCreateWithoutTallyExportItemInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -3591,6 +3715,8 @@ export type FinancialDocumentUpdateToOneWithWhereWithoutTallyExportItemInput = {
 
 export type FinancialDocumentUpdateWithoutTallyExportItemInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3636,6 +3762,8 @@ export type FinancialDocumentUncheckedUpdateWithoutTallyExportItemInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -3676,6 +3804,8 @@ export type FinancialDocumentCreateManyOrganizationInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -3707,6 +3837,8 @@ export type FinancialDocumentCreateManyOrganizationInput = {
 
 export type FinancialDocumentUpdateWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3751,6 +3883,8 @@ export type FinancialDocumentUncheckedUpdateWithoutOrganizationInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -3792,6 +3926,8 @@ export type FinancialDocumentUncheckedUpdateManyWithoutOrganizationInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -3826,6 +3962,8 @@ export type FinancialDocumentCreateManyOwnerInput = {
   organizationId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -3861,6 +3999,8 @@ export type FinancialDocumentCreateManyCorrectedByInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -3891,6 +4031,8 @@ export type FinancialDocumentCreateManyCorrectedByInput = {
 
 export type FinancialDocumentUpdateWithoutOwnerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3935,6 +4077,8 @@ export type FinancialDocumentUncheckedUpdateWithoutOwnerInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -3976,6 +4120,8 @@ export type FinancialDocumentUncheckedUpdateManyWithoutOwnerInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -4007,6 +4153,8 @@ export type FinancialDocumentUncheckedUpdateManyWithoutOwnerInput = {
 
 export type FinancialDocumentUpdateWithoutCorrectedByInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4052,6 +4200,8 @@ export type FinancialDocumentUncheckedUpdateWithoutCorrectedByInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -4093,6 +4243,8 @@ export type FinancialDocumentUncheckedUpdateManyWithoutCorrectedByInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -4126,6 +4278,8 @@ export type FinancialDocumentCreateManyClientInput = {
   organizationId: string
   ownerId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -4157,6 +4311,8 @@ export type FinancialDocumentCreateManyClientInput = {
 
 export type FinancialDocumentUpdateWithoutClientInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4201,6 +4357,8 @@ export type FinancialDocumentUncheckedUpdateWithoutClientInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -4242,6 +4400,8 @@ export type FinancialDocumentUncheckedUpdateManyWithoutClientInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -4276,6 +4436,8 @@ export type FinancialDocumentCreateManyEventInput = {
   organizationId: string
   ownerId: string
   clientId: string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -4307,6 +4469,8 @@ export type FinancialDocumentCreateManyEventInput = {
 
 export type FinancialDocumentUpdateWithoutEventInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4351,6 +4515,8 @@ export type FinancialDocumentUncheckedUpdateWithoutEventInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -4392,6 +4558,8 @@ export type FinancialDocumentUncheckedUpdateManyWithoutEventInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -4427,6 +4595,8 @@ export type FinancialDocumentCreateManySeriesInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
@@ -4457,6 +4627,8 @@ export type FinancialDocumentCreateManySeriesInput = {
 
 export type FinancialDocumentUpdateWithoutSeriesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4502,6 +4674,8 @@ export type FinancialDocumentUncheckedUpdateWithoutSeriesInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
@@ -4543,6 +4717,8 @@ export type FinancialDocumentUncheckedUpdateManyWithoutSeriesInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
@@ -4577,6 +4753,8 @@ export type FinancialDocumentCreateManySourceDocumentInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   type: $Enums.DocumentType
   status?: $Enums.DocumentStatus
@@ -4607,6 +4785,8 @@ export type FinancialDocumentCreateManySourceDocumentInput = {
 
 export type FinancialDocumentUpdateWithoutSourceDocumentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4652,6 +4832,8 @@ export type FinancialDocumentUncheckedUpdateWithoutSourceDocumentInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
@@ -4693,6 +4875,8 @@ export type FinancialDocumentUncheckedUpdateManyWithoutSourceDocumentInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
@@ -4727,6 +4911,8 @@ export type FinancialDocumentCreateManyTaxRuleInput = {
   ownerId: string
   clientId: string
   eventId?: string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: string | null
   seriesId?: string | null
   sourceDocumentId?: string | null
   type: $Enums.DocumentType
@@ -4757,6 +4943,8 @@ export type FinancialDocumentCreateManyTaxRuleInput = {
 
 export type FinancialDocumentUpdateWithoutTaxRuleInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
   status?: Prisma.EnumDocumentStatusFieldUpdateOperationsInput | $Enums.DocumentStatus
   number?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4802,6 +4990,8 @@ export type FinancialDocumentUncheckedUpdateWithoutTaxRuleInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -4843,6 +5033,8 @@ export type FinancialDocumentUncheckedUpdateManyWithoutTaxRuleInput = {
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customEvent?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stallNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seriesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceDocumentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumDocumentTypeFieldUpdateOperationsInput | $Enums.DocumentType
@@ -4944,6 +5136,8 @@ export type FinancialDocumentSelect<ExtArgs extends runtime.Types.Extensions.Int
   ownerId?: boolean
   clientId?: boolean
   eventId?: boolean
+  customEvent?: boolean
+  stallNumber?: boolean
   seriesId?: boolean
   sourceDocumentId?: boolean
   type?: boolean
@@ -4995,6 +5189,8 @@ export type FinancialDocumentSelectCreateManyAndReturn<ExtArgs extends runtime.T
   ownerId?: boolean
   clientId?: boolean
   eventId?: boolean
+  customEvent?: boolean
+  stallNumber?: boolean
   seriesId?: boolean
   sourceDocumentId?: boolean
   type?: boolean
@@ -5038,6 +5234,8 @@ export type FinancialDocumentSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   ownerId?: boolean
   clientId?: boolean
   eventId?: boolean
+  customEvent?: boolean
+  stallNumber?: boolean
   seriesId?: boolean
   sourceDocumentId?: boolean
   type?: boolean
@@ -5081,6 +5279,8 @@ export type FinancialDocumentSelectScalar = {
   ownerId?: boolean
   clientId?: boolean
   eventId?: boolean
+  customEvent?: boolean
+  stallNumber?: boolean
   seriesId?: boolean
   sourceDocumentId?: boolean
   type?: boolean
@@ -5110,7 +5310,7 @@ export type FinancialDocumentSelectScalar = {
   updatedAt?: boolean
 }
 
-export type FinancialDocumentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "ownerId" | "clientId" | "eventId" | "seriesId" | "sourceDocumentId" | "type" | "status" | "number" | "currency" | "piCategory" | "taxablePaise" | "taxPaise" | "totalPaise" | "tdsPaise" | "netReceivablePaise" | "taxRuleId" | "einvoiceStatus" | "irn" | "acknowledgementNumber" | "signedQrPayload" | "issuedAt" | "snapshot" | "correctedSnapshot" | "correctionVersion" | "correctionReason" | "correctedAt" | "correctedById" | "version" | "createdAt" | "updatedAt", ExtArgs["result"]["financialDocument"]>
+export type FinancialDocumentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "ownerId" | "clientId" | "eventId" | "customEvent" | "stallNumber" | "seriesId" | "sourceDocumentId" | "type" | "status" | "number" | "currency" | "piCategory" | "taxablePaise" | "taxPaise" | "totalPaise" | "tdsPaise" | "netReceivablePaise" | "taxRuleId" | "einvoiceStatus" | "irn" | "acknowledgementNumber" | "signedQrPayload" | "issuedAt" | "snapshot" | "correctedSnapshot" | "correctionVersion" | "correctionReason" | "correctedAt" | "correctedById" | "version" | "createdAt" | "updatedAt", ExtArgs["result"]["financialDocument"]>
 export type FinancialDocumentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -5175,6 +5375,8 @@ export type $FinancialDocumentPayload<ExtArgs extends runtime.Types.Extensions.I
     ownerId: string
     clientId: string
     eventId: string | null
+    customEvent: runtime.JsonValue | null
+    stallNumber: string | null
     seriesId: string | null
     sourceDocumentId: string | null
     type: $Enums.DocumentType
@@ -5645,6 +5847,8 @@ export interface FinancialDocumentFieldRefs {
   readonly ownerId: Prisma.FieldRef<"FinancialDocument", 'String'>
   readonly clientId: Prisma.FieldRef<"FinancialDocument", 'String'>
   readonly eventId: Prisma.FieldRef<"FinancialDocument", 'String'>
+  readonly customEvent: Prisma.FieldRef<"FinancialDocument", 'Json'>
+  readonly stallNumber: Prisma.FieldRef<"FinancialDocument", 'String'>
   readonly seriesId: Prisma.FieldRef<"FinancialDocument", 'String'>
   readonly sourceDocumentId: Prisma.FieldRef<"FinancialDocument", 'String'>
   readonly type: Prisma.FieldRef<"FinancialDocument", 'DocumentType'>

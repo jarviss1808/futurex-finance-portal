@@ -58,7 +58,7 @@ export function filtersToQuery(filters: ReportFilters, extra: Record<string, str
 
 export type PiRow = {
   id: string; number: string; issuedAt: Date; status: string; currency: string;
-  category: PiCategory; area: string; rate: bigint; taxable: bigint; cgst: bigint; sgst: bigint; igst: bigint; tax: bigint; tds: bigint; confirmedTds: bigint; pendingTds: bigint; netReceivable: bigint;
+  category: PiCategory; stallNumber: string; area: string; rate: bigint; taxable: bigint; cgst: bigint; sgst: bigint; igst: bigint; tax: bigint; tds: bigint; confirmedTds: bigint; pendingTds: bigint; netReceivable: bigint;
   total: bigint; approved: bigint; pending: bigint; declined: bigint; outstanding: bigint; state: PaymentState;
   owner: { id: string; name: string }; client: { id: string; legalName: string; contactName: string | null; contactEmail: string | null; additionalEmails: string[] }; event: { id: string; name: string; venue: string; city: string; countryCode: string } | null;
 };
@@ -70,21 +70,22 @@ export async function loadPiRows(actor: Actor, filters: Partial<ReportFilters> &
   if (filters.employeeIds?.length && actor.role === "ADMIN") and.push({ ownerId: { in: filters.employeeIds } });
   if (filters.eventIds?.length) and.push({ eventId: { in: filters.eventIds } });
   if (filters.piCategories?.length) and.push({ piCategory: { in: filters.piCategories } });
-  if (filters.search) and.push({ OR: [{ number: { contains: filters.search, mode: "insensitive" } }, { client: { legalName: { contains: filters.search, mode: "insensitive" } } }] });
+  if (filters.search) and.push({ OR: [{ number: { contains: filters.search, mode: "insensitive" } }, { stallNumber: { contains: filters.search, mode: "insensitive" } }, { client: { legalName: { contains: filters.search, mode: "insensitive" } } }] });
   const documents = await db.financialDocument.findMany({
     where: { AND: and },
-    select: { id: true, number: true, issuedAt: true, status: true, currency: true, piCategory: true, taxablePaise: true, taxPaise: true, totalPaise: true, tdsPaise: true, netReceivablePaise: true, snapshot: true, correctedSnapshot: true, owner: { select: { id: true, name: true } }, client: { select: { id: true, legalName: true, contactName: true, contactEmail: true, additionalEmails: true } }, event: { select: { id: true, name: true, venue: true, city: true, countryCode: true } }, allocations: { select: { amountPaise: true, tdsPaise: true, payment: { select: { status: true } } } } },
+    select: { id: true, number: true, issuedAt: true, status: true, currency: true, piCategory: true, stallNumber: true, taxablePaise: true, taxPaise: true, totalPaise: true, tdsPaise: true, netReceivablePaise: true, snapshot: true, correctedSnapshot: true, owner: { select: { id: true, name: true } }, client: { select: { id: true, legalName: true, contactName: true, contactEmail: true, additionalEmails: true } }, event: { select: { id: true, name: true, venue: true, city: true, countryCode: true } }, allocations: { select: { amountPaise: true, tdsPaise: true, payment: { select: { status: true } } } } },
     orderBy: [{ issuedAt: "desc" }],
   });
   const rows = documents.map((document) => {
-    const snapshot = (document.correctedSnapshot ?? document.snapshot ?? {}) as { purpose?: string; lines?: Array<{ unit?: string; quantity?: string; unitPricePaise?: string }>; taxBreakdown?: Array<{ label?: string; amountPaise?: string }> };
+    const snapshot = (document.correctedSnapshot ?? document.snapshot ?? {}) as { purpose?: string; stallNumber?: string; event?: { name: string; venue: string; city: string; countryCode: string }; lines?: Array<{ unit?: string; quantity?: string; unitPricePaise?: string }>; taxBreakdown?: Array<{ label?: string; amountPaise?: string }> };
     const space = snapshot.lines?.find((line) => line.unit?.toUpperCase() === "SQM");
     const taxes = snapshot.taxBreakdown ?? [];
     const component = (name: string) => taxes.filter((item) => item.label?.toUpperCase().startsWith(name)).reduce((sum, item) => sum + BigInt(item.amountPaise ?? "0"), 0n);
     const balance = piBalance(document.netReceivablePaise, document.status, document.allocations.map((allocation) => ({ amountPaise: allocation.amountPaise, status: allocation.payment.status })));
     const confirmedTds = document.allocations.filter((allocation) => allocation.payment.status === "VERIFIED").reduce((sum, allocation) => sum + allocation.tdsPaise, 0n);
     const pendingTds = document.allocations.filter((allocation) => allocation.payment.status === "PENDING").reduce((sum, allocation) => sum + allocation.tdsPaise, 0n);
-    return { id: document.id, number: document.number!, issuedAt: document.issuedAt ?? new Date(0), status: document.status, currency: document.currency, category: document.piCategory ?? (snapshot.purpose === "ADDITIONAL_ITEMS" ? "EXTRA_REQUIREMENTS" : "EXHIBITION_PARTICIPATION"), area: space?.quantity ?? "", rate: BigInt(space?.unitPricePaise ?? "0"), taxable: document.taxablePaise, cgst: component("CGST"), sgst: component("SGST"), igst: component("IGST"), tax: document.taxPaise, tds: document.tdsPaise, confirmedTds, pendingTds, netReceivable: document.netReceivablePaise, total: document.totalPaise, ...balance, owner: document.owner, client: document.client, event: document.event };
+    const event = document.event ?? (snapshot.event ? { id: `custom:${document.id}`, name: snapshot.event.name, venue: snapshot.event.venue, city: snapshot.event.city, countryCode: snapshot.event.countryCode } : null);
+    return { id: document.id, number: document.number!, issuedAt: document.issuedAt ?? new Date(0), status: document.status, currency: document.currency, category: document.piCategory ?? (snapshot.purpose === "ADDITIONAL_ITEMS" ? "EXTRA_REQUIREMENTS" : "EXHIBITION_PARTICIPATION"), stallNumber: snapshot.stallNumber ?? document.stallNumber ?? "", area: space?.quantity ?? "", rate: BigInt(space?.unitPricePaise ?? "0"), taxable: document.taxablePaise, cgst: component("CGST"), sgst: component("SGST"), igst: component("IGST"), tax: document.taxPaise, tds: document.tdsPaise, confirmedTds, pendingTds, netReceivable: document.netReceivablePaise, total: document.totalPaise, ...balance, owner: document.owner, client: document.client, event };
   });
   return filters.state && filters.state !== "ALL" ? rows.filter((row) => row.state === filters.state) : rows;
 }

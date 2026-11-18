@@ -240,6 +240,8 @@ model FinancialDocument {
   ownerId               String
   clientId              String
   eventId               String?
+  customEvent           Json?
+  stallNumber           String?
   seriesId              String?
   sourceDocumentId      String?
   type                  DocumentType

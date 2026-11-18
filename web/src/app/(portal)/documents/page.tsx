@@ -43,11 +43,12 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       <div className="table-wrap"><table>
         <thead><tr><th>Number</th><th>Client</th><th>Exhibition</th>{admin && <th>Employee</th>}<th>Status</th><th>Date</th><th className="num">Value</th><th className="num">Received</th><th className="num">Outstanding</th></tr></thead>
         <tbody>{docs.map((document) => {
+          const effectiveSnapshot = (document.correctedSnapshot ?? document.snapshot ?? {}) as { event?: { name?: string } };
           const balance = piBalance(document.netReceivablePaise, document.status, document.allocations.map((item) => ({ amountPaise: item.amountPaise, status: item.payment.status })));
           const issued = document.status === "ISSUED" && ["PROFORMA", "TAX_INVOICE"].includes(document.type);
           return <tr key={document.id}>
             <td><Link href={`/documents/${document.id}`}>{document.number ?? "Draft"}</Link>{document.type !== "PROFORMA" && <small className="block">{document.type.replaceAll("_", " ")}</small>}</td>
-            <td>{document.client.legalName}</td><td>{document.event?.name ?? "—"}</td>{admin && <td>{document.owner.name}</td>}
+            <td>{document.client.legalName}</td><td>{document.event?.name ?? effectiveSnapshot.event?.name ?? "—"}{document.stallNumber && <small className="block">Stall {document.stallNumber}</small>}</td>{admin && <td>{document.owner.name}</td>}
             <td><span className={`badge ${document.status === "VOIDED" ? "rejected" : document.status.toLowerCase()}`}>{document.status === "VOIDED" ? "CANCELLED" : document.status}</span>{issued && <small className="block">{PAYMENT_STATE_LABEL[balance.state]}</small>}</td>
             <td>{formatIstDate(document.issuedAt ?? document.createdAt)}</td>
             <td className="num">{formatCurrencyMinor(document.totalPaise, document.currency)}{document.tdsPaise > 0n && <small className="block">Net {formatCurrencyMinor(document.netReceivablePaise, document.currency)}</small>}{document.correctionVersion === 1 && <small className="block">Corrected once</small>}</td>

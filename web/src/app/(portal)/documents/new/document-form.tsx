@@ -8,7 +8,8 @@ type Event = { id: string; name: string; edition: string | null; taxConfigApprov
 type Purpose = "SPACE" | "ADDITIONAL_ITEMS";
 type PiCategory = "EXHIBITION_PARTICIPATION" | "BRANDING_FLEX_FRAME" | "EXTRA_REQUIREMENTS" | "STALL_FABRICATION";
 type Line = { description: string; classification: string; unit: string; quantity: string; unitPrice: string };
-export type DocumentFormInitial = { clientId: string; eventId: string; piCategory: PiCategory; purpose: Purpose; lines: Line[]; discount: string; otherCharges: string; tdsAmount: string; notes: string };
+type CustomEvent = { name: string; edition: string; startsOn: string; endsOn: string; venue: string; city: string; stateRegion: string; countryCode: string };
+export type DocumentFormInitial = { clientId: string; eventId: string; eventSource?: "LISTED" | "CUSTOM"; customEvent?: CustomEvent; stallNumber?: string; piCategory: PiCategory; purpose: Purpose; lines: Line[]; discount: string; otherCharges: string; tdsAmount: string; notes: string };
 
 const spaceLine = (): Line => ({ description: "", classification: "998596", unit: "SQM", quantity: "1", unitPrice: "" });
 const itemLine = (): Line => ({ description: "", classification: "998596", unit: "NOS", quantity: "1", unitPrice: "" });
@@ -19,6 +20,7 @@ export function DocumentForm({ documentType = "PROFORMA", correctionId, initial 
   const [events, setEvents] = useState<Event[]>([]);
   const [clientId, setClientId] = useState(initial?.clientId ?? "");
   const [eventId, setEventId] = useState(initial?.eventId ?? "");
+  const [eventSource, setEventSource] = useState<"LISTED" | "CUSTOM">(initial?.eventSource ?? "LISTED");
   const [purpose, setPurpose] = useState<Purpose>(initial?.purpose ?? "SPACE");
   const [piCategory, setPiCategory] = useState<PiCategory>(initial?.piCategory ?? "EXHIBITION_PARTICIPATION");
   const [lines, setLines] = useState<Line[]>(initial?.lines ?? [spaceLine()]);
@@ -26,6 +28,8 @@ export function DocumentForm({ documentType = "PROFORMA", correctionId, initial 
   const [pending, setPending] = useState(false);
   const currency = clients.find((client) => client.id === clientId)?.defaultCurrency ?? "INR";
   const selectedEvent = events.find((event) => event.id === eventId);
+  const customAllowed = documentType === "PROFORMA" && ["BRANDING_FLEX_FRAME", "STALL_FABRICATION"].includes(piCategory);
+  const customSelected = customAllowed && eventSource === "CUSTOM";
 
   useEffect(() => {
     Promise.all([
@@ -54,7 +58,7 @@ export function DocumentForm({ documentType = "PROFORMA", correctionId, initial 
     const response = await fetch(correctionId ? `/api/documents/${correctionId}/correct` : "/api/documents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: documentType, piCategory, purpose, clientId: form.get("clientId"), eventId: form.get("eventId"), discount: form.get("discount"), otherCharges: form.get("otherCharges"), tdsAmount: documentType === "PROFORMA" ? form.get("tdsAmount") : "0", notes: form.get("notes"), correctionReason: form.get("correctionReason"), lines }),
+      body: JSON.stringify({ type: documentType, piCategory, purpose, clientId: form.get("clientId"), eventSource: customSelected ? "CUSTOM" : "LISTED", eventId: customSelected ? undefined : eventId, customEvent: customSelected ? { name: form.get("customEventName"), edition: form.get("customEventEdition"), startsOn: form.get("customEventStartsOn"), endsOn: form.get("customEventEndsOn"), venue: form.get("customEventVenue"), city: form.get("customEventCity"), stateRegion: form.get("customEventStateRegion"), countryCode: form.get("customEventCountryCode") } : undefined, stallNumber: form.get("stallNumber"), discount: form.get("discount"), otherCharges: form.get("otherCharges"), tdsAmount: documentType === "PROFORMA" ? form.get("tdsAmount") : "0", notes: form.get("notes"), correctionReason: form.get("correctionReason"), lines }),
     });
     const data = await response.json().catch(() => ({}));
     if (response.ok) {
@@ -69,10 +73,24 @@ export function DocumentForm({ documentType = "PROFORMA", correctionId, initial 
   return <form className="form stack" onSubmit={submit}>
     <div className="form-grid">
       <label>Client<select name="clientId" required value={clientId} onChange={(event) => setClientId(event.target.value)}><option value="" disabled>Select client</option>{clients.map((client) => <option value={client.id} key={client.id}>{client.legalName} · {client.defaultCurrency}</option>)}</select></label>
-      <label>Exhibition<select name="eventId" required value={eventId} onChange={(event) => setEventId(event.target.value)}><option value="" disabled>Select exhibition</option>{events.map((event) => <option value={event.id} key={event.id}>{event.name}{event.edition ? ` — ${event.edition}` : ""}{!event.taxConfigApproved ? " (tax configuration pending)" : ""}</option>)}</select></label>
+      {!customSelected && <label>Exhibition<select name="eventId" required value={eventId} onChange={(event) => setEventId(event.target.value)}><option value="" disabled>Select exhibition</option>{events.map((event) => <option value={event.id} key={event.id}>{event.name}{event.edition ? ` — ${event.edition}` : ""}{!event.taxConfigApproved ? " (tax configuration pending)" : ""}</option>)}</select></label>}
+      <label>Stall number (optional)<input name="stallNumber" maxLength={100} defaultValue={initial?.stallNumber ?? ""} placeholder="Example: A-12" /></label>
     </div>
 
-    {documentType === "PROFORMA" && <label>PI category<select value={piCategory} onChange={(event) => setPiCategory(event.target.value as PiCategory)}><option value="EXHIBITION_PARTICIPATION">Exhibition Participation</option><option value="BRANDING_FLEX_FRAME">Branding / Flex with Frame</option><option value="EXTRA_REQUIREMENTS">Extra Requirements</option><option value="STALL_FABRICATION">Stall Fabrication</option></select></label>}
+    {documentType === "PROFORMA" && <label>PI category<select value={piCategory} onChange={(event) => { const category = event.target.value as PiCategory; setPiCategory(category); if (!["BRANDING_FLEX_FRAME", "STALL_FABRICATION"].includes(category)) setEventSource("LISTED"); }}><option value="EXHIBITION_PARTICIPATION">Exhibition Participation</option><option value="BRANDING_FLEX_FRAME">Branding / Flex with Frame</option><option value="EXTRA_REQUIREMENTS">Extra Requirements</option><option value="STALL_FABRICATION">Stall Fabrication</option></select></label>}
+
+    {customAllowed && <fieldset className="purpose-picker"><legend>Exhibition source</legend><label className="purpose-option"><input type="radio" checked={eventSource === "LISTED"} onChange={() => setEventSource("LISTED")} /><strong>Futurex exhibition list</strong><span>Select an exhibition already configured by Admin.</span></label><label className="purpose-option"><input type="radio" checked={eventSource === "CUSTOM"} onChange={() => setEventSource("CUSTOM")} /><strong>Other exhibition</strong><span>Enter the customer&apos;s external exhibition details for this PI.</span></label></fieldset>}
+
+    {customSelected && <div className="form-grid">
+      <label>Exhibition name<input name="customEventName" required maxLength={200} defaultValue={initial?.customEvent?.name ?? ""} /></label>
+      <label>Edition (optional)<input name="customEventEdition" maxLength={100} defaultValue={initial?.customEvent?.edition ?? ""} /></label>
+      <label>Start date<input name="customEventStartsOn" type="date" required defaultValue={initial?.customEvent?.startsOn ?? ""} /></label>
+      <label>End date<input name="customEventEndsOn" type="date" required defaultValue={initial?.customEvent?.endsOn ?? ""} /></label>
+      <label className="wide">Venue<input name="customEventVenue" required maxLength={300} defaultValue={initial?.customEvent?.venue ?? ""} /></label>
+      <label>City<input name="customEventCity" required maxLength={120} defaultValue={initial?.customEvent?.city ?? ""} /></label>
+      <label>State / region (optional)<input name="customEventStateRegion" maxLength={120} defaultValue={initial?.customEvent?.stateRegion ?? ""} /></label>
+      <label>Country code<input name="customEventCountryCode" required pattern="[A-Za-z]{2}" maxLength={2} defaultValue={initial?.customEvent?.countryCode ?? "IN"} placeholder="IN" title="Two-letter ISO country code, for example IN, AE or DE" /></label>
+    </div>}
 
     <fieldset className="purpose-picker">
       <legend>Calculation method</legend>
@@ -100,9 +118,10 @@ export function DocumentForm({ documentType = "PROFORMA", correctionId, initial 
       {correctionId && <label className="wide">Correction reason<textarea name="correctionReason" rows={3} minLength={5} maxLength={500} required placeholder="Explain why this one-time correction is required" /></label>}
     </div>
     {!clientId && <div className="notice warning">Select a client first. Currency is fixed from the client country.</div>}
-    {selectedEvent && (!selectedEvent.taxConfigApproved || !selectedEvent.taxRule) && <div className="notice warning">Admin must assign and approve this exhibition&apos;s tax treatment before a PI can be created.</div>}
-    {selectedEvent?.taxConfigApproved && selectedEvent.taxRule && <div className="notice">Tax configured by Admin: {selectedEvent.taxRule.name} · {selectedEvent.taxRule.taxType} {(selectedEvent.taxRule.rateBasisPoints / 100).toFixed(2)}%</div>}
+    {!customSelected && selectedEvent && (!selectedEvent.taxConfigApproved || !selectedEvent.taxRule) && <div className="notice warning">Admin must assign and approve this exhibition&apos;s tax treatment before a PI can be created.</div>}
+    {!customSelected && selectedEvent?.taxConfigApproved && selectedEvent.taxRule && <div className="notice">Tax configured by Admin: {selectedEvent.taxRule.name} · {selectedEvent.taxRule.taxType} {(selectedEvent.taxRule.rateBasisPoints / 100).toFixed(2)}%</div>}
+    {customSelected && <div className="notice">Tax is assigned automatically from the approved country policy: Indian venue GST 18%; venue outside India GST not applicable.</div>}
     {error && <p className="error">{error}</p>}
-    <div className="form-actions"><button disabled={pending || !clientId || !selectedEvent?.taxConfigApproved || !selectedEvent.taxRule}>{pending ? "Calculating…" : correctionId ? "Save one-time correction" : "Create draft and preview"}</button></div>
+    <div className="form-actions"><button disabled={pending || !clientId || (!customSelected && (!selectedEvent?.taxConfigApproved || !selectedEvent.taxRule))}>{pending ? "Calculating…" : correctionId ? "Save one-time correction" : "Create draft and preview"}</button></div>
   </form>;
 }

@@ -2182,6 +2182,8 @@ export const FinancialDocumentScalarFieldEnum = {
   ownerId: 'ownerId',
   clientId: 'clientId',
   eventId: 'eventId',
+  customEvent: 'customEvent',
+  stallNumber: 'stallNumber',
   seriesId: 'seriesId',
   sourceDocumentId: 'sourceDocumentId',
   type: 'type',
@@ -2533,6 +2535,20 @@ export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMod
 
 
 /**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+
+
+
+/**
  * Reference to a field of type 'DocumentStatus'
  */
 export type EnumDocumentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DocumentStatus'>
@@ -2571,20 +2587,6 @@ export type EnumEinvoiceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$P
  * Reference to a field of type 'EinvoiceStatus[]'
  */
 export type ListEnumEinvoiceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EinvoiceStatus[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 

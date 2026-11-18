@@ -113,6 +113,15 @@ Updated: 2026-11-17
 - Fixed pre-existing defect: *Add client* saved the client but crashed while resetting the form (stuck on "Saving…").
 - Fresh checks: 76 unit tests and 13 PostgreSQL integration tests pass (including the full submit → decline → resubmit → approve flow, isolation, over-amount, withdraw, cancel and numbering concurrency); TypeScript, ESLint and the production build pass. Browser QA on a restored copy of production covered both roles end to end. Production DB was backed up (`tmp/pre-sales-workflow-backups/`) before migration `202611160003_sales_workflow`.
 
+## 2026-11-18 — Custom fabrication exhibitions, stall number and live email
+
+- Branding / Flex and Stall Fabrication PIs can now use either an Admin-listed exhibition or customer-specific custom exhibition details (name, edition, dates, venue, city, region and country). Custom exhibitions remain blocked for participation, extra-requirement and statutory document flows.
+- The server assigns approved tax policy by venue country for custom exhibitions: India uses the approved 18% GST rule; venues outside India use the approved no-GST rule. Employees cannot override tax treatment.
+- Optional stall number is persisted separately, preserved in immutable snapshots, shown in PI preview and PDF/DOCX/XLSX output, searchable, and included in the PI register and CSV/XLSX/PDF reporting path.
+- Additive migration `202611180001_custom_exhibition_stall_number` was applied successfully to Prisma Postgres during a controlled Vercel build; no existing document or financial value was rewritten.
+- SendGrid credits API returned HTTP 200. The existing key, verified sender and reply-to are configured in Vercel Production and `SENDGRID_DRY_RUN=false`; automatic send-on-issue remains disabled, so mail is sent only by an explicit authorized action.
+- Fresh verification: 111/111 unit tests, TypeScript, ESLint and the Next.js production build pass. PostgreSQL integration tests are blocked locally because `TEST_DATABASE_URL` is not configured and Docker is unavailable. Vercel production migration/build succeeded, `/api/health` and `/login` return HTTP 200, and the canonical live URL is `https://futurex-finance-portal.vercel.app`.
+
 ## Remaining production blockers
 
 1. **High:** Tax Invoice numbering, foreign-event statutory classification, e-invoice applicability/provider integration and final statutory document-template approval still require authorization. The PI series, Delhi GST split logic and supplied signatory stamp are configured; the application will not fabricate remaining statutory values.
@@ -121,9 +130,9 @@ Updated: 2026-11-17
 4. **Low:** Docker container startup remains unverified because Docker Engine is not installed; this no longer blocks the active Vercel deployment but still applies to the optional self-hosted Docker path.
 5. **Medium:** The supplied logo and approved signatory stamp are integrated, but reusable branding/signature upload management and an external e-invoice provider are not implemented; statutory issuance remains safely gated until authorized configuration exists.
 6. **High:** Master Specification stages still pending include relationship transfer and sales-credit attribution, bookings, cumulative receipt version entities, imports and full browser acceptance automation. (Payment correction history, payment proofs, in-app attention badges and reminders are now done.)
-7. **High:** SendGrid is configured with a verified sender, but the account has 0 email credits; renew the SendGrid plan before relying on PI emails, reminders or payment confirmations. The SendGrid API key was shared in chat — rotate it after go-live.
+7. **Medium:** SendGrid is funded, its API key passes the credits endpoint and production delivery mode is enabled. A deliberate recipient-controlled delivery test is still required before relying on PI emails, reminders or payment confirmations. The key was previously shared in chat and should be rotated after acceptance testing.
 8. **Low:** Dependency audit currently reports zero known vulnerabilities. Prisma 8 is only a release candidate and was not adopted; remain on tested Prisma 7.10.1 until a maintained stable migration is available.
 
 ## Deployment readiness
 
-**Public PI-management deployment is live and operational with authenticated Admin/Employee access. Conditional go-live.** Core PI, reporting, private-download, role-isolation and generated-document paths are verified on Vercel. Do not rely on outbound email until SendGrid is rotated/funded and dry-run is disabled; do not use statutory Tax Invoice/e-invoice paths until the listed accounting authorizations and provider configuration are completed.
+**Public PI-management deployment is live and operational with authenticated Admin/Employee access. Conditional go-live.** Core PI, reporting, private-download, role-isolation and generated-document paths are verified on Vercel. SendGrid is configured for explicit authorized sends but still needs a controlled real-recipient acceptance test; do not use statutory Tax Invoice/e-invoice paths until the listed accounting authorizations and provider configuration are completed.

@@ -13,4 +13,14 @@ describe("server-side document draft calculation", () => {
   it("stores manual TDS separately and derives net receivable without treating it as payment", () => { const result = buildDraftSnapshot({ ...base, tdsAmount: "3200.50" }); expect(result.totals.tdsPaise).toBe(320050n); expect(result.totals.netReceivablePaise).toBe(27999950n); expect(result.snapshot).toMatchObject({ tdsPaise: "320050", netReceivablePaise: "27999950" }); });
   it("defaults manual TDS to zero and rejects TDS above the gross value", () => { expect(buildDraftSnapshot(base).totals.tdsPaise).toBe(0n); expect(() => buildDraftSnapshot({ ...base, tdsAmount: "283200.01" })).toThrow(/exceed the gross PI value/); });
   it("does not apply the PI-only TDS deduction to statutory documents", () => { expect(() => buildDraftSnapshot({ ...base, type: "TAX_INVOICE", tdsAmount: "1" })).toThrow(/only for Proforma Invoices/); });
+  it("allows custom exhibitions only for branding and stall fabrication PIs", () => {
+    const customEvent = { name: "Global Expo", edition: "2027", startsOn: "2027-03-10", endsOn: "2027-03-12", venue: "World Centre", city: "Dubai", stateRegion: "Dubai", countryCode: "AE" };
+    const result = buildDraftSnapshot({ ...base, eventSource: "CUSTOM", eventId: undefined, customEvent, piCategory: "STALL_FABRICATION", stallNumber: " B-21 " });
+    expect(result.input.customEvent).toEqual(customEvent);
+    expect(result.snapshot.stallNumber).toBe("B-21");
+    expect(() => buildDraftSnapshot({ ...base, eventSource: "CUSTOM", eventId: undefined, customEvent, piCategory: "EXHIBITION_PARTICIPATION" })).toThrow(/Branding and Stall Fabrication/);
+  });
+  it("rejects a custom exhibition whose end date is before its start date", () => {
+    expect(() => buildDraftSnapshot({ ...base, eventSource: "CUSTOM", eventId: undefined, customEvent: { name: "Expo", startsOn: "2027-03-12", endsOn: "2027-03-10", venue: "Hall", city: "Dubai", countryCode: "AE" }, piCategory: "BRANDING_FLEX_FRAME" })).toThrow(/End date/);
+  });
 });

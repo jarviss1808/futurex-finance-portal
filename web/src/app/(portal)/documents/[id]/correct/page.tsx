@@ -9,6 +9,8 @@ type StoredSnapshot = {
   purpose?: DocumentFormInitial["purpose"];
   lines?: Array<{ description: string; classification: string; unit?: string; quantity: string; unitPricePaise: string }>;
   discountPaise?: string; otherChargesPaise?: string; tdsPaise?: string; notes?: string;
+  stallNumber?: string;
+  event?: { name: string; edition?: string | null; startsOn: string; endsOn: string; venue: string; city: string; stateRegion?: string | null; countryCode: string };
 };
 
 export default async function CorrectPiPage({ params }: { params: Promise<{ id: string }> }) {
@@ -20,6 +22,9 @@ export default async function CorrectPiPage({ params }: { params: Promise<{ id: 
   const initial: DocumentFormInitial = {
     clientId: document.clientId,
     eventId: document.eventId ?? "",
+    eventSource: document.eventId ? "LISTED" : "CUSTOM",
+    customEvent: document.eventId || !snapshot.event ? undefined : { name: snapshot.event.name, edition: snapshot.event.edition ?? "", startsOn: snapshot.event.startsOn, endsOn: snapshot.event.endsOn, venue: snapshot.event.venue, city: snapshot.event.city, stateRegion: snapshot.event.stateRegion ?? "", countryCode: snapshot.event.countryCode },
+    stallNumber: snapshot.stallNumber ?? document.stallNumber ?? "",
     piCategory: document.piCategory ?? snapshot.piCategory ?? "EXHIBITION_PARTICIPATION",
     purpose: snapshot.purpose ?? "ADDITIONAL_ITEMS",
     lines: (snapshot.lines ?? []).map((line) => ({ description: line.description, classification: line.classification, unit: line.unit ?? "NOS", quantity: line.quantity, unitPrice: minorUnitsToDecimal(BigInt(line.unitPricePaise)) })),
