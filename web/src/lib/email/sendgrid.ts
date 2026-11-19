@@ -1,73 +1,331 @@
+
 import "server-only";
+
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+
+import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
+
 import { HttpError } from "@/lib/http";
-import { explainSendgridError } from "./errors";
 
-export type MailAttachment = { content: Uint8Array; type: string; filename: string; inlineId?: string };
-export type OutgoingMail = { to: string[]; subject: string; text: string; html: string; attachments?: MailAttachment[]; categories?: string[] };
-export type DeliveryResult = { status: "SENT" | "PREVIEWED"; messageId: string | null };
+export type MailAttachment = {
+  content: Uint8Array;
+  type: string;
+  filename: string;
+  inlineId?: string;
+};
 
-export function emailSettings() {
-  const apiKey = process.env.SENDGRID_API_KEY?.trim() || "";
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL?.trim() || "";
-  const fromName = process.env.SENDGRID_FROM_NAME?.trim() || "Accounts Futurex Trade";
-  const replyTo = process.env.SENDGRID_REPLY_TO?.trim() || fromEmail;
-  const dryRun = process.env.SENDGRID_DRY_RUN === "true";
-  return { apiKey, fromEmail, fromName, replyTo, dryRun, configured: Boolean(apiKey && fromEmail) };
-}
+export type OutgoingMail = {
+  to: string[];
+  subject: string;
+  text: string;
+  html: string;
+  attachments?: MailAttachment[];
+  categories?: string[];
+};
 
-let logoCache: Uint8Array | null = null;
-async function emailLogo() {
-  logoCache ??= new Uint8Array(await readFile(path.join(process.cwd(), "public", "branding", "futurex-logo-email.png")));
-  return logoCache;
-}
+export type DeliveryResult = {
+  status: "SENT" | "PREVIEWED";
+  messageId: string | null;
+};
 
 export const EMAIL_LOGO_CID = "futurex-logo";
 
-/**
- * Sends one message through SendGrid. Every recipient gets a separate personalization so client
- * addresses are never disclosed to each other. With SENDGRID_DRY_RUN=true nothing leaves the server.
- */
-export async function deliverMail(mail: OutgoingMail): Promise<DeliveryResult> {
-  const settings = emailSettings();
-  if (!mail.to.length) throw new HttpError(409, "No recipient email address");
-  if (settings.dryRun) return { status: "PREVIEWED", messageId: null };
-  if (!settings.configured) throw new HttpError(503, "Email is not configured. Set SENDGRID_API_KEY and a verified SENDGRID_FROM_EMAIL.");
-  const attachments = [{ content: await emailLogo(), type: "image/png", filename: "futurex-logo.png", inlineId: EMAIL_LOGO_CID }, ...(mail.attachments ?? [])];
-  const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${settings.apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      personalizations: mail.to.map((address) => ({ to: [{ email: address }] })),
-      from: { email: settings.fromEmail, name: settings.fromName },
-      reply_to: { email: settings.replyTo, name: settings.fromName },
-      subject: mail.subject,
-      content: [{ type: "text/plain", value: mail.text }, { type: "text/html", value: mail.html }],
-      attachments: attachments.map((item) => ({ content: Buffer.from(item.content).toString("base64"), type: item.type, filename: item.filename, disposition: item.inlineId ? "inline" : "attachment", ...(item.inlineId ? { content_id: item.inlineId } : {}) })),
-      categories: (mail.categories ?? ["futurex-finance"]).slice(0, 10),
-      tracking_settings: { click_tracking: { enable: false, enable_text: false } },
-    }),
-    signal: AbortSignal.timeout(20_000),
-  });
-  if (!response.ok) throw new HttpError(502, explainSendgridError(response.status, (await response.text()).slice(0, 600)));
-  return { status: "SENT", messageId: response.headers.get("x-message-id") };
+export function emailSettings() {
+  const host = process.env.SMTP_HOST?.trim() ?? "";
+
+  const port = Number(
+    process.env.SMTP_PORT ?? "465"
+  );
+
+  const user = process.env.SMTP_USER?.trim() ?? "";
+
+  const password =
+    process.env.SMTP_APP_PASSWORD?.replace(
+      /\s/g,
+      ""
+    ) ?? "";
+
+  const fromEmail =
+    process.env.SMTP_FROM_EMAIL?.trim() || user;
+
+  const fromName =
+    process.env.SMTP_FROM_NAME?.trim() ||
+    "Accounts Futurex Trade";
+
+  const replyTo =
+    process.env.SMTP_REPLY_TO?.trim() ||
+    fromEmail;
+
+  const dryRun =
+    process.env.SMTP_DRY_RUN === "true";
+
+  return {
+    host,
+    port,
+    user,
+    password,
+    fromEmail,
+    fromName,
+    replyTo,
+    dryRun,
+
+    configured: Boolean(
+      host &&
+        user &&
+        password &&
+        fromEmail &&
+        Number.isInteger(port) &&
+        port > 0 &&
+        port <= 65535
+    ),
+  };
 }
 
-let creditCache: { at: number; value: { remain: number; total: number; nextReset: string | null } | null } | null = null;
-/** Remaining SendGrid credits for the Admin settings panel; null when unavailable. Cached for one minute. */
-export async function sendgridCredits() {
-  const settings = emailSettings();
-  if (!settings.apiKey || settings.dryRun) return null;
-  if (creditCache && Date.now() - creditCache.at < 60_000) return creditCache.value;
-  try {
-    const response = await fetch("https://api.sendgrid.com/v3/user/credits", { headers: { Authorization: `Bearer ${settings.apiKey}` }, signal: AbortSignal.timeout(5_000) });
-    if (!response.ok) console.warn(`SendGrid credit check failed with HTTP ${response.status}`);
-    const data = response.ok ? await response.json() as { remain?: number; total?: number; next_reset?: string } : null;
-    creditCache = { at: Date.now(), value: data ? { remain: Number(data.remain ?? 0), total: Number(data.total ?? 0), nextReset: data.next_reset ?? null } : null };
-  } catch (error) {
-    console.warn("SendGrid credit check failed:", error instanceof Error ? error.message : error);
-    creditCache = { at: Date.now(), value: null };
+type SmtpSettings = ReturnType<
+  typeof emailSettings
+>;
+
+// FIX: Specify SMTP response type explicitly.
+type SmtpTransporter = Transporter<
+  SMTPTransport.SentMessageInfo
+>;
+
+let transport: SmtpTransporter | null = null;
+let transportIdentity = "";
+
+let logoCache: Uint8Array | null = null;
+
+async function emailLogo(): Promise<Uint8Array> {
+  if (!logoCache) {
+    logoCache = new Uint8Array(
+      await readFile(
+        path.join(
+          process.cwd(),
+          "public",
+          "branding",
+          "futurex-logo-email.png"
+        )
+      )
+    );
   }
-  return creditCache.value;
+
+  return logoCache;
+}
+
+function smtpTransport(
+  settings: SmtpSettings
+): SmtpTransporter {
+  const identity = [
+    settings.host,
+    settings.port,
+    settings.user,
+    settings.password,
+  ].join(":");
+
+  if (
+    transport &&
+    transportIdentity === identity
+  ) {
+    return transport;
+  }
+
+  if (transport) {
+    transport.close();
+  }
+
+  transport = nodemailer.createTransport({
+    host: settings.host,
+    port: settings.port,
+
+    secure: settings.port === 465,
+    requireTLS: settings.port !== 465,
+
+    auth: {
+      user: settings.user,
+      pass: settings.password,
+    },
+
+    pool: true,
+    maxConnections: 2,
+    maxMessages: 50,
+
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 25_000,
+
+    disableFileAccess: true,
+    disableUrlAccess: true,
+
+    tls: {
+      rejectUnauthorized: true,
+    },
+  });
+
+  transportIdentity = identity;
+
+  return transport;
+}
+
+/**
+ * Sends separate emails to each recipient.
+ * Email addresses remain private.
+ *
+ * SMTP acceptance does not guarantee final
+ * inbox delivery.
+ */
+export async function deliverMail(
+  mail: OutgoingMail
+): Promise<DeliveryResult> {
+  const settings = emailSettings();
+
+  const recipients = [
+    ...new Set(
+      mail.to
+        .map((item) =>
+          item.trim().toLowerCase()
+        )
+        .filter(Boolean)
+    ),
+  ];
+
+  if (!recipients.length) {
+    throw new HttpError(
+      409,
+      "No recipient email address"
+    );
+  }
+
+  if (settings.dryRun) {
+    return {
+      status: "PREVIEWED",
+      messageId: null,
+    };
+  }
+
+  if (!settings.configured) {
+    throw new HttpError(
+      503,
+      "Email is not configured. Set SMTP_HOST, SMTP_USER and SMTP_APP_PASSWORD."
+    );
+  }
+
+  if (
+    settings.fromEmail.toLowerCase() !==
+    settings.user.toLowerCase()
+  ) {
+    throw new HttpError(
+      503,
+      "SMTP_FROM_EMAIL must match SMTP_USER for this mailbox setup."
+    );
+  }
+
+  const attachments = [
+    {
+      filename: "futurex-logo.png",
+      content: Buffer.from(
+        await emailLogo()
+      ),
+      contentType: "image/png",
+      cid: EMAIL_LOGO_CID,
+      contentDisposition:
+        "inline" as const,
+    },
+
+    ...(mail.attachments ?? []).map(
+      (item) => ({
+        filename: item.filename,
+        content: Buffer.from(
+          item.content
+        ),
+        contentType: item.type,
+
+        ...(item.inlineId
+          ? {
+              cid: item.inlineId,
+              contentDisposition:
+                "inline" as const,
+            }
+          : {
+              contentDisposition:
+                "attachment" as const,
+            }),
+      })
+    ),
+  ];
+
+  const sender = {
+    name: settings.fromName,
+    address: settings.fromEmail,
+  };
+
+  const smtp = smtpTransport(settings);
+
+  // FIX: Each result now has a correctly
+  // typed SMTP SentMessageInfo.
+  const results = await Promise.allSettled(
+    recipients.map((recipient) =>
+      smtp.sendMail({
+        from: sender,
+        replyTo: settings.replyTo,
+        to: recipient,
+
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
+
+        attachments,
+      })
+    )
+  );
+
+  const failures = results.filter(
+    (result) => {
+      if (result.status === "rejected") {
+        return true;
+      }
+
+      // TypeScript recognizes accepted/rejected
+      // because the transport uses SMTP info.
+      return (
+        result.value.accepted.length === 0 ||
+        result.value.rejected.length > 0
+      );
+    }
+  );
+
+  if (failures.length > 0) {
+    console.error(
+      "[SMTP] Recipient messages failed",
+      {
+        attempted: recipients.length,
+        failed: failures.length,
+      }
+    );
+
+    throw new HttpError(
+      502,
+      "SMTP failed to accept one or more recipient messages. Check delivery logs before resending."
+    );
+  }
+
+  const first = results[0];
+
+  return {
+    status: "SENT",
+    messageId:
+      first.status === "fulfilled"
+        ? first.value.messageId || null
+        : null,
+  };
+}
+
+/**
+ * Compatibility for existing Admin settings.
+ * SMTP has no SendGrid credit API.
+ */
+export async function sendgridCredits(): Promise<null> {
+  return null;
 }
