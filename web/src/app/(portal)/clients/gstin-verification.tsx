@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   isValidGstin,
@@ -26,11 +26,17 @@ export type GstVerificationDefaults = {
 
 type Mode = "none" | "api" | "manual";
 
+type Props = {
+  defaults?: GstVerificationDefaults;
+  onDetailsFetched?: (details: GstDetails) => void;
+  onGstinChange?: () => void;
+};
+
 export function GstinVerification({
   defaults = {},
-}: {
-  defaults?: GstVerificationDefaults;
-}) {
+  onDetailsFetched,
+  onGstinChange,
+}: Props) {
   const [gstin, setGstin] = useState(
     normalizeGstin(defaults.gstin ?? "")
   );
@@ -38,6 +44,7 @@ export function GstinVerification({
   const [mode, setMode] = useState<Mode>("none");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
   const [manualConfirmed, setManualConfirmed] =
     useState(false);
 
@@ -62,9 +69,33 @@ export function GstinVerification({
   const [lookupAt, setLookupAt] = useState("");
   const [cached, setCached] = useState(false);
 
+  // Prevent outdated requests from changing fields.
+  const controllerRef = useRef<AbortController | null>(
+    null
+  );
+
+  const requestIdRef = useRef(0);
+  const gstinRef = useRef(gstin);
+
+  useEffect(() => {
+    return () => {
+      requestIdRef.current += 1;
+      controllerRef.current?.abort();
+    };
+  }, []);
+
   const valid = isValidGstin(gstin);
 
+  function cancelLookup() {
+    requestIdRef.current += 1;
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    setLoading(false);
+  }
+
   function resetVerification() {
+    cancelLookup();
+
     setMode("none");
     setManualConfirmed(false);
     setError("");
@@ -80,13 +111,22 @@ export function GstinVerification({
   }
 
   function changeGstin(value: string) {
-    setGstin(
-      normalizeGstin(value).slice(0, 15)
-    );
+    const normalized = normalizeGstin(value).slice(0, 15);
+
+    if (normalized === gstinRef.current) return;
+
+    gstinRef.current = normalized;
+    setGstin(normalized);
+
     resetVerification();
+
+    // Clear previous API-filled parent fields.
+    onGstinChange?.();
   }
 
   function enableManual() {
+    cancelLookup();
+
     setMode("manual");
     setError("");
     setManualConfirmed(false);
@@ -96,19 +136,30 @@ export function GstinVerification({
 
   function fillDetails(data: GstDetails) {
     setLegalName(data.legalName);
-    setTradeName(data.tradeName);
+    setTradeName(data.tradeName ?? "");
     setStatus(data.status);
-    setAddress(data.address);
-    setState(data.state);
-    setPincode(data.pincode);
+    setAddress(data.address ?? "");
+    setState(data.state ?? "");
+    setPincode(data.pincode ?? "");
     setLookupAt(data.verifiedAt);
     setCached(data.cached);
     setManualConfirmed(false);
     setMode("api");
+
+    // Auto-fill main company name and billing address.
+    onDetailsFetched?.(data);
   }
 
   async function lookupGstin() {
     if (!valid || loading) return;
+
+    cancelLookup();
+
+    const requestId = requestIdRef.current;
+    const controller = new AbortController();
+    controllerRef.current = controller;
+
+    const requestedGstin = gstinRef.current;
 
     setLoading(true);
     setError("");
@@ -125,12 +176,23 @@ export function GstinVerification({
           },
           credentials: "same-origin",
           cache: "no-store",
-          body: JSON.stringify({ gstin }),
+          body: JSON.stringify({
+            gstin: requestedGstin,
+          }),
+          signal: controller.signal,
         }
       );
 
       const result: GstLookupResponse =
         await response.json();
+
+      if (
+        controller.signal.aborted ||
+        requestId !== requestIdRef.current ||
+        requestedGstin !== gstinRef.current
+      ) {
+        return;
+      }
 
       if (!response.ok || !result.success) {
         throw new Error(
@@ -140,23 +202,31 @@ export function GstinVerification({
         );
       }
 
-      // Ensure the response belongs to the input.
-      if (result.data.gstin !== gstin) {
+      if (result.data.gstin !== requestedGstin) {
         throw new Error("GSTIN mismatch");
       }
 
       fillDetails(result.data);
     } catch (cause) {
+      if (
+        controller.signal.aborted ||
+        requestId !== requestIdRef.current
+      ) {
+        return;
+      }
+
+      setMode("none");
+
       setError(
         cause instanceof Error
           ? cause.message
-          : "Could not fetch GST details"
+          : "GST details could not be fetched"
       );
-
-      // User can switch to manual verification.
-      setMode("none");
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        controllerRef.current = null;
+      }
     }
   }
 
@@ -166,16 +236,13 @@ export function GstinVerification({
   ) {
     setter(value);
 
-    // Editing fetched details invalidates automatic
-    // verification; manual review is then required.
+    // Editing API-verified details requires
+    // manual confirmation again.
     if (mode === "api") {
       setMode("manual");
-      setManualConfirmed(false);
     }
 
-    if (mode === "manual") {
-      setManualConfirmed(false);
-    }
+    setManualConfirmed(false);
   }
 
   const showFields =
@@ -186,13 +253,16 @@ export function GstinVerification({
     legalName.trim().length > 0 &&
     status.trim().length > 0 &&
     address.trim().length > 0 &&
-    (mode === "api" ||
-      (mode === "manual" && manualConfirmed));
+    (
+      mode === "api" ||
+      (mode === "manual" && manualConfirmed)
+    );
 
   return (
     <>
       <label>
         GSTIN <small>(optional)</small>
+
         <input
           name="gstin"
           maxLength={15}
@@ -211,9 +281,9 @@ export function GstinVerification({
         <strong>GST Taxpayer Verification</strong>
 
         <p>
-          Enter a GSTIN to automatically fetch company
-          details, or verify manually on the official
-          GST portal.
+          Enter a GSTIN to fetch company details
+          automatically, or verify them manually
+          on the official GST portal.
         </p>
 
         <button
@@ -268,9 +338,12 @@ export function GstinVerification({
           mode === "none" &&
           gstin ===
             normalizeGstin(defaults.gstin ?? "") && (
-            <p>
+            <p className="success">
               Previously saved verification:{" "}
               {defaults.verifiedAt}
+              {defaults.verifiedBy
+                ? ` by ${defaults.verifiedBy}`
+                : ""}
             </p>
           )}
       </div>
@@ -280,7 +353,9 @@ export function GstinVerification({
           {mode === "api" && (
             <div className="wide notice">
               <p className="success">
-                GST details retrieved successfully.
+                GST details fetched successfully.
+                Company name and billing address
+                have been auto-filled.
               </p>
 
               <p>
@@ -290,13 +365,11 @@ export function GstinVerification({
                   : ""}
               </p>
 
-              <p>
-                Lookup time: {lookupAt}
-              </p>
+              <p>Lookup time: {lookupAt}</p>
 
               {status.toLowerCase() !== "active" && (
                 <p className="error">
-                  Registration status is not Active.
+                  Registration is not Active.
                   Review before saving.
                 </p>
               )}
@@ -305,13 +378,12 @@ export function GstinVerification({
 
           {mode === "manual" && (
             <div className="wide notice">
-              <strong>Manual Verification</strong>
+              <strong>Manual GST Verification</strong>
 
               <p>
                 Open the official GST portal,
-                complete the CAPTCHA, search
-                this GSTIN, and enter the
-                matching details below.
+                complete the CAPTCHA, and
+                enter the matching details.
               </p>
 
               <a
@@ -326,7 +398,8 @@ export function GstinVerification({
           )}
 
           <label>
-            Legal Company Name
+            Verified legal name
+
             <input
               name="gstVerifiedLegalName"
               value={legalName}
@@ -336,12 +409,13 @@ export function GstinVerification({
                   event.target.value
                 )
               }
-              required={showFields}
+              required
             />
           </label>
 
           <label>
-            Trade Name <small>(optional)</small>
+            Trade name <small>(optional)</small>
+
             <input
               name="gstTradeName"
               value={tradeName}
@@ -355,7 +429,8 @@ export function GstinVerification({
           </label>
 
           <label>
-            Registration Status
+            Registration status
+
             <input
               name="gstRegistrationStatus"
               value={status}
@@ -365,12 +440,13 @@ export function GstinVerification({
                   event.target.value
                 )
               }
-              required={showFields}
+              required
             />
           </label>
 
           <label className="wide">
             Registered Business Address
+
             <textarea
               name="gstVerifiedAddress"
               rows={3}
@@ -381,12 +457,13 @@ export function GstinVerification({
                   event.target.value
                 )
               }
-              required={showFields}
+              required
             />
           </label>
 
           <label>
             State
+
             <input
               name="gstState"
               value={state}
@@ -401,6 +478,7 @@ export function GstinVerification({
 
           <label>
             PIN Code
+
             <input
               name="gstPincode"
               maxLength={6}
@@ -408,10 +486,7 @@ export function GstinVerification({
               onChange={(event) =>
                 updateField(
                   setPincode,
-                  event.target.value.replace(
-                    /\D/g,
-                    ""
-                  )
+                  event.target.value.replace(/\D/g, "")
                 )
               }
             />
@@ -423,15 +498,13 @@ export function GstinVerification({
                 type="checkbox"
                 checked={manualConfirmed}
                 onChange={(event) =>
-                  setManualConfirmed(
-                    event.target.checked
-                  )
+                  setManualConfirmed(event.target.checked)
                 }
               />
 
               I checked this GSTIN on the official
-              GST portal and confirm that these
-              details match its result.
+              GST portal and confirm the details
+              match its result.
             </label>
           )}
 
@@ -457,16 +530,13 @@ export function GstinVerification({
             value={ready ? "on" : ""}
           />
 
-          {ready && (
+          {ready ? (
             <p className="wide success">
               GST details ready for review and save.
             </p>
-          )}
-
-          {!ready && (
+          ) : (
             <p className="wide error">
-              Complete verification before saving
-              GST details.
+              Complete GST verification before saving.
             </p>
           )}
         </>

@@ -1,23 +1,21 @@
 import { z } from "zod";
 import type { DocumentSnapshot } from "./generate";
 
-const bankDetails = z
-  .object({
-    bankName: z.string().default(""),
-    accountNumber: z.string().default(""),
-    branch: z.string().default(""),
-    bankAddress: z.string().default(""),
-    ifsc: z.string().default(""),
-    swift: z.string().default(""),
-  })
-  .default({
-    bankName: "",
-    accountNumber: "",
-    branch: "",
-    bankAddress: "",
-    ifsc: "",
-    swift: "",
-  });
+const bankDetails = z.object({
+  bankName: z.string().default(""),
+  accountNumber: z.string().default(""),
+  branch: z.string().default(""),
+  bankAddress: z.string().default(""),
+  ifsc: z.string().default(""),
+  swift: z.string().default(""),
+}).default({
+  bankName: "",
+  accountNumber: "",
+  branch: "",
+  bankAddress: "",
+  ifsc: "",
+  swift: "",
+});
 
 const issuedSnapshot = z.object({
   type: z.string(),
@@ -50,37 +48,29 @@ const issuedSnapshot = z.object({
     billingAddress: z.string(),
     gstin: z.string().nullable(),
   }),
-  event: z
-    .object({
-      name: z.string(),
-      edition: z.string().nullable(),
-      startsOn: z.string().optional(),
-      endsOn: z.string().optional(),
-      venue: z.string(),
-      city: z.string(),
-      stateRegion: z.string().nullable().optional(),
-      countryCode: z.string(),
-    })
-    .optional(),
-  taxBreakdown: z
-    .array(
-      z.object({
-        label: z.string(),
-        ratePercent: z.string(),
-        amountPaise: z.string(),
-      }),
-    )
-    .optional(),
-  lines: z.array(
-    z.object({
-      description: z.string(),
-      classification: z.string(),
-      unit: z.string().default("NOS"),
-      quantity: z.string(),
-      unitPricePaise: z.string(),
-      amountPaise: z.string(),
-    }),
-  ),
+  event: z.object({
+    name: z.string(),
+    edition: z.string().nullable(),
+    startsOn: z.string().optional(),
+    endsOn: z.string().optional(),
+    venue: z.string(),
+    city: z.string(),
+    stateRegion: z.string().nullable().optional(),
+    countryCode: z.string(),
+  }).optional(),
+  taxBreakdown: z.array(z.object({
+    label: z.string(),
+    ratePercent: z.string(),
+    amountPaise: z.string(),
+  })).optional(),
+  lines: z.array(z.object({
+    description: z.string(),
+    classification: z.string(),
+    unit: z.string().default("NOS"),
+    quantity: z.string(),
+    unitPricePaise: z.string(),
+    amountPaise: z.string(),
+  })),
 });
 
 export function toOutputSnapshot(raw: unknown): DocumentSnapshot {
@@ -88,11 +78,9 @@ export function toOutputSnapshot(raw: unknown): DocumentSnapshot {
   const organization = value.organization;
   const totalPaise = BigInt(value.totalPaise);
   const tdsPaise = BigInt(value.tdsPaise);
+
   return {
-    title:
-      value.type === "PROFORMA"
-        ? "Proforma Invoice"
-        : value.type.replaceAll("_", " "),
+    title: value.type === "PROFORMA" ? "Proforma Invoice" : value.type.replaceAll("_", " "),
     number: value.number,
     issueDate: value.issuedAt.slice(0, 10),
     companyName: organization.legalName ?? organization.name,
@@ -107,6 +95,7 @@ export function toOutputSnapshot(raw: unknown): DocumentSnapshot {
     signatureImageBase64: organization.signatureImageBase64,
     event: value.event,
     stallNumber: value.stallNumber,
+    // Existing issued snapshot is the source of truth, not the contact person's name.
     customerName: value.client.legalName,
     customerAddress: value.client.billingAddress,
     customerGstin: value.client.gstin ?? undefined,

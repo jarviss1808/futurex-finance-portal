@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -16,15 +17,32 @@ import { piBalance, PAYMENT_STATE_LABEL } from "@/lib/reports/balances";
 import { formatIstDate } from "@/lib/reports/period";
 import { PaymentCard } from "../../payments/payment-ui";
 import { amountInWords, documentMoney } from "@/lib/finance/amount-words";
+type Snapshot = { client?: { legalName?: string; billingAddress?: string; gstin?: string | null }; purpose?: "SPACE" | "ADDITIONAL_ITEMS"; stallNumber?: string; event?: { name: string; edition?: string | null; startsOn?: string; endsOn?: string; venue: string; city: string; stateRegion?: string | null; countryCode: string }; lines?: Array<{ description: string; classification: string; unit?: string; quantity: string; unitPricePaise: string; amountPaise: string }>; taxLabel?: string; taxBreakdown?: Array<{ label: string; ratePercent: string; amountPaise: string }>; notes?: string };
+export default function DocumentPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={<section className="panel"><p>Loading invoice details...</p></section>}>
+      <DocumentContent params={params} />
+    </Suspense>
+  );
+}
 
-type Snapshot = { purpose?: "SPACE" | "ADDITIONAL_ITEMS"; stallNumber?: string; event?: { name: string; edition?: string | null; startsOn?: string; endsOn?: string; venue: string; city: string; stateRegion?: string | null; countryCode: string }; lines?: Array<{ description: string; classification: string; unit?: string; quantity: string; unitPricePaise: string; amountPaise: string }>; taxLabel?: string; taxBreakdown?: Array<{ label: string; ratePercent: string; amountPaise: string }>; notes?: string };
-
-export default async function DocumentPage({ params }: { params: Promise<{ id: string }> }) {
+async function DocumentContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const actor = await requirePortalActor();
   const document = await findVisibleDocument(actor, id);
   if (!document) notFound();
   const snapshot = (document.correctedSnapshot ?? document.snapshot ?? {}) as Snapshot;
+  // Issued/corrected documents display the same client identity as the export snapshot.
+  // Drafts continue to display their live client record.
+  const billToName = document.status === "DRAFT"
+    ? document.client.legalName
+    : snapshot.client?.legalName?.trim() || document.client.legalName;
+  const billToAddress = document.status === "DRAFT"
+    ? document.client.billingAddress
+    : snapshot.client?.billingAddress ?? document.client.billingAddress;
+  const billToGstin = document.status === "DRAFT"
+    ? document.client.gstin
+    : snapshot.client?.gstin ?? document.client.gstin;
   const money = (value: bigint | string) => documentMoney(BigInt(value), document.currency);
   const eventDate = (value: Date | string) => new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZone: typeof value === "string" ? "UTC" : document.event?.timezone ?? "Asia/Kolkata" }).format(typeof value === "string" ? new Date(`${value}T00:00:00.000Z`) : value);
   const effectiveEvent = snapshot.event ?? (document.event ? { name: document.event.name, edition: document.event.edition, startsOn: document.event.startsOn.toISOString().slice(0, 10), endsOn: document.event.endsOn.toISOString().slice(0, 10), venue: document.event.venue, city: document.event.city, stateRegion: document.event.stateRegion, countryCode: document.event.countryCode } : undefined);
@@ -41,15 +59,14 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
   const lastReminder = payable ? await db.documentEmailDelivery.findFirst({ where: { documentId: document.id, kind: "PAYMENT_REMINDER", status: { in: ["SENT", "PREVIEWED"] } }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }) : null;
   const balance = piBalance(document.netReceivablePaise, document.status, payments.flatMap((payment) => payment.allocations.filter((item) => item.documentId === document.id).map((item) => ({ amountPaise: item.amountPaise, status: payment.status }))));
   const history = await paymentHistory(actor.organizationId, payments.map((payment) => payment.id));
-
   return <>
-    <header className="page-head"><div><p className="eyebrow">{document.type.replaceAll("_", " ")}{document.status === "VOIDED" ? " · CANCELLED" : ""}</p><h1>{document.number ?? "Draft preview"}</h1><p>{document.client.legalName} · {effectiveEvent?.name ?? "Exhibition"} · created by {document.owner.name}</p></div><div className="head-actions">{payable && <Link className="button" href={`/payments?pi=${document.id}`}>Record payment</Link>}<Link className="button secondary" href="/documents">All PIs</Link></div></header>
+    <header className="page-head"><div><p className="eyebrow">{document.type.replaceAll("_", " ")}{document.status === "VOIDED" ? " · CANCELLED" : ""}</p><h1>{document.number ?? "Draft preview"}</h1><p>{billToName} · {effectiveEvent?.name ?? "Exhibition"} · created by {document.owner.name}</p></div><div className="head-actions">{payable && <Link className="button" href={`/payments?pi=${document.id}`}>Record payment</Link>}<Link className="button secondary" href="/documents">All PIs</Link></div></header>
     {document.correctionVersion === 1 && <div className="notice warning">This is the effective one-time corrected PI snapshot. The original remains preserved for audit.{document.correctionReason ? ` Reason: ${document.correctionReason}` : ""}</div>}
     {document.status === "VOIDED" && <div className="notice danger">This PI was cancelled{cancellation ? ` by ${cancellation.actor.name} on ${formatIstDate(cancellation.createdAt)}` : ""}{cancellation && typeof (cancellation.metadata as { reason?: unknown } | null)?.reason === "string" ? ` — reason: ${(cancellation.metadata as { reason: string }).reason}` : ""}. Its number stays reserved and is never reused.</div>}
     {document.status === "DRAFT" && <IssueControl id={document.id} type={document.type} nextNumber={series ? previewNumber(series) : null} />}
     {payable && <section className="pi-balance">
       <div><small>Gross PI value</small><strong>{money(document.totalPaise)}</strong></div>
-      <div><small>Manual TDS</small><strong>{money(document.tdsPaise)}</strong></div>
+      {document.tdsPaise !== 0n && <div><small>Manual TDS</small><strong>{money(document.tdsPaise)}</strong></div>}
       <div><small>Approved received</small><strong className="good">{money(balance.approved)}</strong></div>
       <div><small>Awaiting approval</small><strong>{money(balance.pending)}</strong></div>
       <div><small>Outstanding</small><strong className="accent">{money(balance.outstanding)}</strong></div>
@@ -59,9 +76,9 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
     <section className="document-sheet">
       <div className="doc-title"><div><Image className="doc-logo" src="/branding/futurex-logo.png" width={3359} height={751} priority alt="Futurex — Let's build the future together" /><strong className="company-legal">{profile?.legalName ?? "Futurex Trade Fair and Events Private Limited"}</strong><p>{profile?.gstin && `GSTIN ${profile.gstin}`} {profile?.pan && `· PAN ${profile.pan}`} {profile?.cin && `· CIN ${profile.cin}`}</p></div><div><h2>{document.type.replaceAll("_", " ")}</h2><p>{document.number ?? "DRAFT — NOT OFFICIAL"}</p></div></div>
       {profile && <div className="company-addresses"><p><strong>GST registered office</strong>{profile.gstRegisteredAddress}</p><p><strong>Registered office</strong>{profile.registeredAddress}</p><p><strong>Corporate office</strong>{profile.corporateAddress}</p></div>}
-      <div className="doc-party"><div><small>BILL TO</small><strong>{document.client.legalName}</strong><p>{document.client.billingAddress}</p><p>{document.client.gstin && `GSTIN ${document.client.gstin}`}</p></div><div><small>EXHIBITION</small><strong>{effectiveEvent?.name}{effectiveEvent?.edition ? ` — ${effectiveEvent.edition}` : ""}</strong>{effectiveEvent && <><p>{effectiveEvent.startsOn && effectiveEvent.endsOn ? `${eventDate(effectiveEvent.startsOn)} – ${eventDate(effectiveEvent.endsOn)}` : ""}</p><p>{effectiveEvent.venue}, {effectiveEvent.city}{effectiveEvent.stateRegion ? `, ${effectiveEvent.stateRegion}` : ""}, {effectiveEvent.countryCode}</p><p>Stall No: {snapshot.stallNumber ?? document.stallNumber ?? ""}</p></>}</div></div>
+      <div className="doc-party"><div><small>BILL TO</small><strong>{billToName}</strong><p>{billToAddress}</p><p>{billToGstin && `GSTIN ${billToGstin}`}</p></div><div><small>EXHIBITION</small><strong>{effectiveEvent?.name}{effectiveEvent?.edition ? ` — ${effectiveEvent.edition}` : ""}</strong>{effectiveEvent && <><p>{effectiveEvent.startsOn && effectiveEvent.endsOn ? `${eventDate(effectiveEvent.startsOn)} – ${eventDate(effectiveEvent.endsOn)}` : ""}</p><p>{effectiveEvent.venue}, {effectiveEvent.city}{effectiveEvent.stateRegion ? `, ${effectiveEvent.stateRegion}` : ""}, {effectiveEvent.countryCode}</p><p>Stall No: {snapshot.stallNumber ?? document.stallNumber ?? ""}</p></>}</div></div>
       <table><thead><tr><th>Description</th><th>HSN/SAC</th><th>Qty.</th><th>Unit</th><th>Rate ({document.currency})</th><th>Amount ({document.currency})</th></tr></thead><tbody>{snapshot.lines?.map((line, index) => <tr key={index}><td>{line.description}</td><td>{line.classification}</td><td>{line.quantity}</td><td>{line.unit ?? "NOS"}</td><td>{money(line.unitPricePaise)}</td><td>{money(line.amountPaise)}</td></tr>)}</tbody></table>
-      <div className="doc-totals"><p><span>Taxable value</span><strong>{money(document.taxablePaise)}</strong></p>{snapshot.taxBreakdown?.length ? snapshot.taxBreakdown.map((tax) => <p key={tax.label}><span>{tax.label}</span><strong>{money(tax.amountPaise)}</strong></p>) : <p><span>{snapshot.taxLabel ?? "Tax"}</span><strong>{money(document.taxPaise)}</strong></p>}<p><span>Gross PI value</span><strong>{money(document.totalPaise)}</strong></p><p><span>Manual TDS amount</span><strong>{money(document.tdsPaise)}</strong></p><p className="grand"><span>Net receivable</span><strong>{money(document.netReceivablePaise)}</strong></p></div>
+      <div className="doc-totals"><p><span>Taxable value</span><strong>{money(document.taxablePaise)}</strong></p>{snapshot.taxBreakdown?.length ? snapshot.taxBreakdown.map((tax) => <p key={tax.label}><span>{tax.label}</span><strong>{money(tax.amountPaise)}</strong></p>) : <p><span>{snapshot.taxLabel ?? "Tax"}</span><strong>{money(document.taxPaise)}</strong></p>}<p><span>Gross PI value</span><strong>{money(document.totalPaise)}</strong></p>{document.tdsPaise !== 0n && <p><span>Manual TDS amount</span><strong>{money(document.tdsPaise)}</strong></p>}<p className="grand"><span>Net receivable</span><strong>{money(document.netReceivablePaise)}</strong></p></div>
       <div className="doc-notes"><small>AMOUNT IN WORDS</small><p>{amountInWords(document.totalPaise, document.currency)}</p></div>
       {snapshot.notes && <div className="doc-notes"><small>NOTES</small><p>{snapshot.notes}</p></div>}
       {bank?.accountNumber && <div className="doc-bank"><small>BANK DETAILS</small><p><strong>Account holder: {profile?.legalName ?? "Futurex Trade Fair and Events Private Limited"}</strong></p><p><strong>{bank.bankName}</strong> · A/C {bank.accountNumber} · {bank.branch}</p><p>IFSC {bank.ifsc} · SWIFT {bank.swift}</p></div>}
