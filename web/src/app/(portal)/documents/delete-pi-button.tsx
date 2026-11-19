@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -16,20 +16,22 @@ export function DeletePiButton({
   returnToList = false,
 }: Props) {
   const router = useRouter();
+  const submittingRef = useRef(false);
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
   async function handleDelete() {
-    if (pending) return;
+    if (submittingRef.current) return;
 
     const confirmed = window.confirm(
-      `Permanently delete draft "${label}"?\n\n` +
-      "This cannot be undone."
+      `Permanently delete Draft PI for "${label}"?\n\n` +
+        "This action cannot be undone."
     );
 
     if (!confirmed) return;
 
+    submittingRef.current = true;
     setPending(true);
     setError("");
 
@@ -43,11 +45,14 @@ export function DeletePiButton({
         }
       );
 
-      const result = await response.json();
+      const result: {
+        ok?: boolean;
+        error?: string;
+      } = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          result.error ?? "Delete failed"
+          result.error ?? "Unable to delete Draft PI"
         );
       }
 
@@ -63,6 +68,7 @@ export function DeletePiButton({
           : "Unable to delete document"
       );
     } finally {
+      submittingRef.current = false;
       setPending(false);
     }
   }
@@ -74,7 +80,7 @@ export function DeletePiButton({
         className="button small secondary"
         onClick={handleDelete}
         disabled={pending}
-        aria-label={`Delete draft ${label}`}
+        aria-label={`Delete Draft PI for ${label}`}
       >
         {pending ? "Deleting..." : "Delete"}
       </button>

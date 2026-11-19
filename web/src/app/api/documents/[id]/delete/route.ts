@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/security/session";
 import { assertSameOrigin } from "@/lib/security/request";
- 
 
 type Context = {
   params: Promise<{ id: string }>;
@@ -63,10 +62,14 @@ export async function POST(
               },
             },
             tallyExportItem: {
-              select: { documentId: true },
+              select: {
+                documentId: true,
+              },
             },
             receiptFor: {
-              select: { id: true },
+              select: {
+                id: true,
+              },
             },
           },
         });
@@ -124,7 +127,7 @@ export async function POST(
 
     return NextResponse.json({
       ok: true,
-      message: "Draft PI deleted",
+      message: "Draft PI deleted permanently",
     });
   } catch (error) {
     const code =
@@ -139,27 +142,32 @@ export async function POST(
       );
     }
 
-    if (
-      code === "NOT_DRAFT" ||
-      code === "LINKED_RECORDS"
-    ) {
+    if (code === "NOT_DRAFT") {
       return NextResponse.json(
         {
           error:
-            "Only unlinked Draft PIs can be deleted",
+            "Only Draft Proforma Invoices can be deleted",
         },
         { status: 409 }
       );
     }
 
-    // Foreign-key restrictions may also block deletion.
-    // Do not expose internal DB details to users.
+    if (code === "LINKED_RECORDS") {
+      return NextResponse.json(
+        {
+          error:
+            "This Draft PI has linked records and cannot be deleted",
+        },
+        { status: 409 }
+      );
+    }
+
     console.error("Draft PI deletion failed", error);
 
     return NextResponse.json(
       {
         error:
-          "Unable to delete this draft. Check linked records.",
+          "Unable to delete this Draft PI. Check linked records.",
       },
       { status: 409 }
     );
