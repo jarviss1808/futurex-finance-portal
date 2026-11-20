@@ -19,6 +19,7 @@ export type MailAttachment = {
 
 export type OutgoingMail = {
   to: string[];
+  cc?: string[];
   subject: string;
   text: string;
   html: string;
@@ -34,13 +35,15 @@ export type DeliveryResult = {
 export const EMAIL_LOGO_CID = "futurex-logo";
 
 export function emailSettings() {
-  const host = process.env.SMTP_HOST?.trim() ?? "";
+  const host =
+    process.env.SMTP_HOST?.trim() ?? "";
 
   const port = Number(
     process.env.SMTP_PORT ?? "465"
   );
 
-  const user = process.env.SMTP_USER?.trim() ?? "";
+  const user =
+    process.env.SMTP_USER?.trim() ?? "";
 
   const password =
     process.env.SMTP_APP_PASSWORD?.replace(
@@ -88,7 +91,6 @@ type SmtpSettings = ReturnType<
   typeof emailSettings
 >;
 
-// FIX: Specify SMTP response type explicitly.
 type SmtpTransporter = Transporter<
   SMTPTransport.SentMessageInfo
 >;
@@ -170,11 +172,15 @@ function smtpTransport(
 }
 
 /**
- * Sends separate emails to each recipient.
- * Email addresses remain private.
+ * Sends separate messages to primary recipients.
  *
- * SMTP acceptance does not guarantee final
- * inbox delivery.
+ * Optional CC addresses are included only on
+ * the first primary recipient's message, so
+ * CC recipients receive one copy, not one
+ * copy per primary recipient.
+ *
+ * SMTP acceptance does not guarantee
+ * final inbox delivery.
  */
 export async function deliverMail(
   mail: OutgoingMail
@@ -191,10 +197,31 @@ export async function deliverMail(
     ),
   ];
 
+  const cc = [
+    ...new Set(
+      (mail.cc ?? [])
+        .map((item) =>
+          item.trim().toLowerCase()
+        )
+        .filter(Boolean)
+    ),
+  ];
+
   if (!recipients.length) {
     throw new HttpError(
       409,
       "No recipient email address"
+    );
+  }
+
+  if (
+    cc.some((email) =>
+      recipients.includes(email)
+    )
+  ) {
+    throw new HttpError(
+      400,
+      "A CC address is already a primary recipient"
     );
   }
 
@@ -263,14 +290,19 @@ export async function deliverMail(
 
   const smtp = smtpTransport(settings);
 
-  // FIX: Each result now has a correctly
-  // typed SMTP SentMessageInfo.
+  // Each primary recipient receives a
+  // separate message. CC is attached to
+  // the first message only.
   const results = await Promise.allSettled(
-    recipients.map((recipient) =>
+    recipients.map((recipient, index) =>
       smtp.sendMail({
         from: sender,
         replyTo: settings.replyTo,
         to: recipient,
+
+        ...(index === 0 && cc.length > 0
+          ? { cc }
+          : {}),
 
         subject: mail.subject,
         text: mail.text,
@@ -282,16 +314,34 @@ export async function deliverMail(
   );
 
   const failures = results.filter(
-    (result) => {
+    (result, index) => {
       if (result.status === "rejected") {
         return true;
       }
 
-      // TypeScript recognizes accepted/rejected
-      // because the transport uses SMTP info.
+      const accepted = (
+        result.value.accepted ?? []
+      ).map((address) =>
+        String(address).toLowerCase()
+      );
+
+      const rejected = (
+        result.value.rejected ?? []
+      ).map((address) =>
+        String(address).toLowerCase()
+      );
+
+      const expected = [
+        recipients[index],
+        ...(index === 0 ? cc : []),
+      ];
+
       return (
-        result.value.accepted.length === 0 ||
-        result.value.rejected.length > 0
+        rejected.length > 0 ||
+        expected.some(
+          (address) =>
+            !accepted.includes(address)
+        )
       );
     }
   );
@@ -300,8 +350,8 @@ export async function deliverMail(
     console.error(
       "[SMTP] Recipient messages failed",
       {
-        attempted: recipients.length,
-        failed: failures.length,
+        attempted: recipients.length + cc.length,
+        failedMessages: failures.length,
       }
     );
 
